@@ -1,0 +1,14 @@
+bin/sudokug
+Changes
+General.pm
+Makefile.PL
+MANIFEST
+README
+README.MacOS
+README.MSWin32
+README.VMS
+t/basic.t
+t/pod.t
+t/pod_coverage.t
+t/sudoku.t
+META.yml                                 Module meta-data (added by MakeMaker)

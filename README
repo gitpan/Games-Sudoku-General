@@ -1,0 +1,32 @@
+Games::Sudoku::General is a module to solve the class of puzzle that
+involves allocating symbols among sets such that no set contains more
+than one of any symbol. Sudoku is the most common name for such
+puzzles, though Number Place and Wasabi have also been used.
+
+Each puzzle is considered to be made up of a number of cells, each of
+which is a member of one or more sets, and each of which may contain
+exactly one symbol. The contents of a number of cells are gven, and the
+problem is to deduce the contents of the rest of the cells.
+
+This module is installable by the usual incantation:
+
+    gunzip Games-Sudoku-General-9.999.tar.gz
+    tar -xf Games-Sudoku-General-9.999.tar
+    perl Makefile.PL
+    make
+    make test
+    make install
+
+You can skip the gunzip step if your tar allows you to say
+
+    tar -xzf Games-Sudoku-General-9.999.tar.gz
+
+Of course, since it's pure Perl, you can just expand the kit and drop
+General.pm in the Games/Sudoku directory in the appropriate place
+in your @INC directories. The executable (bin/sudokug) needs to be
+dropped somewhere in your path.
+
+OS-specific notes exist for (at least) MacOS (meaning, Mac OS 9
+and lower), MSWin32, and VMS. See the relevant README files for
+details.
+
