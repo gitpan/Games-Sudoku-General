@@ -216,7 +216,7 @@ of the parameter. The script will prompt with the string, and anything
 you enter is part of that parameter, until you enter a line consisting
 solely of the given string. More than one "here document" can be
 specified; you will be prompted for them in left-to-right order. There
-is an example of this in the L</SUMMARY> section.
+is an example of this in the L</SYNOPSIS> section.
 
 Below is a brief description of the commands. For the attributes that
 may be set or retrieved, and a more thorough (and possibly more
@@ -243,7 +243,7 @@ to a prompt by this script also works.
 =item get name ...
 
 This command displays the values of the named attributes. You can
-specify the name of more than one attribute. See L<Attributes> below
+specify the name of more than one attribute. See L</Attributes> below
 for a brief discussion of each, and L<Games::Sudoku::General> for more
 details.
 
@@ -279,7 +279,7 @@ like any other whitespace.
 =item set name value ...
 
 This command sets each named attribute to its given value. You can
-specify more than one name/value pair. See L<Attributes> below
+specify more than one name/value pair. See L</Attributes> below
 for a brief discussion of each, and L<Games::Sudoku::General> for more
 details.
 

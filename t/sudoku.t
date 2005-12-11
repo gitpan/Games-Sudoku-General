@@ -216,7 +216,7 @@ test <<eod 'Constraint Taxonomy 2 (FN) - Glenn Fowler' $gsftax
 eod
 
 constraints_used
-test FN
+test 'F N'
 
 problem <<eod
 ...4..7894.6...1...8.....5.2.4..5....95......6..9.2.4..3..7...8.67......9....8..2
@@ -235,7 +235,7 @@ test <<eod 'Constraint Taxonomy 3 (FN) - Glenn Fowler' $gsftax
 eod
 
 constraints_used
-test FN
+test 'F N'
 
 
 problem <<eod
@@ -255,7 +255,7 @@ test <<eod 'Constraint Taxonomy 4 (FNB) - Glenn Fowler' $gsftax
 eod
 
 constraints_used
-test FNB
+test 'F N B'
 
 problem <<eod
 ...4..7894.6...1...8.....5.2.4..5....9..........9.2.4..3..7.9.8.67..1...9....8..2
@@ -274,7 +274,7 @@ test <<eod 'Constraint Taxonomy 5 (FNBT) - Glenn Fowler' $gsftax
 eod
 
 constraints_used
-test FNBT
+test 'F N B T'
 
 problem <<eod
 ..345...94567..1......2....2.4.....5.....8....3.....4.3.5...9128..6.1..4....3....
@@ -293,7 +293,7 @@ test <<eod 'Constraint Taxonomy 6 (FNT) - Glenn Fowler' $gsftax
 eod
 
 constraints_used
-test FNT
+test 'F N T'
 
 problem <<eod
 . 4 5 . 3 2 1 . .
@@ -551,6 +551,76 @@ test <<eod 'Digit Place - Cihan Altay' 'cited by Ed Pegg, Jr.' $pegg
 1 6 3 2 5 4
 5 1 4 3 2 6
 2 3 6 5 4 1
+eod
+
+set sudoku 4
+
+get topology
+test <<eod 'Topology of 4 x 4 sudoku'
+c0,r0,s0 c1,r0,s0 c2,r0,s0 c3,r0,s0 c4,r0,s1 c5,r0,s1 c6,r0,s1 c7,r0,s1 c8,r0,s2 c9,r0,s2 c10,r0,s2 c11,r0,s2 c12,r0,s3 c13,r0,s3 c14,r0,s3 c15,r0,s3
+c0,r1,s0 c1,r1,s0 c2,r1,s0 c3,r1,s0 c4,r1,s1 c5,r1,s1 c6,r1,s1 c7,r1,s1 c8,r1,s2 c9,r1,s2 c10,r1,s2 c11,r1,s2 c12,r1,s3 c13,r1,s3 c14,r1,s3 c15,r1,s3
+c0,r2,s0 c1,r2,s0 c2,r2,s0 c3,r2,s0 c4,r2,s1 c5,r2,s1 c6,r2,s1 c7,r2,s1 c8,r2,s2 c9,r2,s2 c10,r2,s2 c11,r2,s2 c12,r2,s3 c13,r2,s3 c14,r2,s3 c15,r2,s3
+c0,r3,s0 c1,r3,s0 c2,r3,s0 c3,r3,s0 c4,r3,s1 c5,r3,s1 c6,r3,s1 c7,r3,s1 c8,r3,s2 c9,r3,s2 c10,r3,s2 c11,r3,s2 c12,r3,s3 c13,r3,s3 c14,r3,s3 c15,r3,s3
+c0,r4,s4 c1,r4,s4 c2,r4,s4 c3,r4,s4 c4,r4,s5 c5,r4,s5 c6,r4,s5 c7,r4,s5 c8,r4,s6 c9,r4,s6 c10,r4,s6 c11,r4,s6 c12,r4,s7 c13,r4,s7 c14,r4,s7 c15,r4,s7
+c0,r5,s4 c1,r5,s4 c2,r5,s4 c3,r5,s4 c4,r5,s5 c5,r5,s5 c6,r5,s5 c7,r5,s5 c8,r5,s6 c9,r5,s6 c10,r5,s6 c11,r5,s6 c12,r5,s7 c13,r5,s7 c14,r5,s7 c15,r5,s7
+c0,r6,s4 c1,r6,s4 c2,r6,s4 c3,r6,s4 c4,r6,s5 c5,r6,s5 c6,r6,s5 c7,r6,s5 c8,r6,s6 c9,r6,s6 c10,r6,s6 c11,r6,s6 c12,r6,s7 c13,r6,s7 c14,r6,s7 c15,r6,s7
+c0,r7,s4 c1,r7,s4 c2,r7,s4 c3,r7,s4 c4,r7,s5 c5,r7,s5 c6,r7,s5 c7,r7,s5 c8,r7,s6 c9,r7,s6 c10,r7,s6 c11,r7,s6 c12,r7,s7 c13,r7,s7 c14,r7,s7 c15,r7,s7
+c0,r8,s8 c1,r8,s8 c2,r8,s8 c3,r8,s8 c4,r8,s9 c5,r8,s9 c6,r8,s9 c7,r8,s9 c8,r8,s10 c9,r8,s10 c10,r8,s10 c11,r8,s10 c12,r8,s11 c13,r8,s11 c14,r8,s11 c15,r8,s11
+c0,r9,s8 c1,r9,s8 c2,r9,s8 c3,r9,s8 c4,r9,s9 c5,r9,s9 c6,r9,s9 c7,r9,s9 c8,r9,s10 c9,r9,s10 c10,r9,s10 c11,r9,s10 c12,r9,s11 c13,r9,s11 c14,r9,s11 c15,r9,s11
+c0,r10,s8 c1,r10,s8 c2,r10,s8 c3,r10,s8 c4,r10,s9 c5,r10,s9 c6,r10,s9 c7,r10,s9 c8,r10,s10 c9,r10,s10 c10,r10,s10 c11,r10,s10 c12,r10,s11 c13,r10,s11 c14,r10,s11 c15,r10,s11
+c0,r11,s8 c1,r11,s8 c2,r11,s8 c3,r11,s8 c4,r11,s9 c5,r11,s9 c6,r11,s9 c7,r11,s9 c8,r11,s10 c9,r11,s10 c10,r11,s10 c11,r11,s10 c12,r11,s11 c13,r11,s11 c14,r11,s11 c15,r11,s11
+c0,r12,s12 c1,r12,s12 c2,r12,s12 c3,r12,s12 c4,r12,s13 c5,r12,s13 c6,r12,s13 c7,r12,s13 c8,r12,s14 c9,r12,s14 c10,r12,s14 c11,r12,s14 c12,r12,s15 c13,r12,s15 c14,r12,s15 c15,r12,s15
+c0,r13,s12 c1,r13,s12 c2,r13,s12 c3,r13,s12 c4,r13,s13 c5,r13,s13 c6,r13,s13 c7,r13,s13 c8,r13,s14 c9,r13,s14 c10,r13,s14 c11,r13,s14 c12,r13,s15 c13,r13,s15 c14,r13,s15 c15,r13,s15
+c0,r14,s12 c1,r14,s12 c2,r14,s12 c3,r14,s12 c4,r14,s13 c5,r14,s13 c6,r14,s13 c7,r14,s13 c8,r14,s14 c9,r14,s14 c10,r14,s14 c11,r14,s14 c12,r14,s15 c13,r14,s15 c14,r14,s15 c15,r14,s15
+c0,r15,s12 c1,r15,s12 c2,r15,s12 c3,r15,s12 c4,r15,s13 c5,r15,s13 c6,r15,s13 c7,r15,s13 c8,r15,s14 c9,r15,s14 c10,r15,s14 c11,r15,s14 c12,r15,s15 c13,r15,s15 c14,r15,s15 c15,r15,s15
+eod
+
+get symbols
+test '. 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16' 'Symbols for 4 x 4 Sudoku'
+
+get columns
+test 16 'Columns for 4 x 4 Sudoku'
+
+problem <<eod
+  1 .. .. ..    8 .. ..  5   .. .. .. ..    7 14 .. .. 
+ .. 11  6 ..    4 .. 10 ..   .. 16 .. ..   .. 15 .. .. 
+ .. .. .. ..   .. .. .. ..   .. .. .. 13   .. .. ..  2 
+  3 .. .. ..   .. 12 .. ..   .. ..  9 ..   11  8  1 .. 
+
+ .. .. .. 14    6 .. ..  7    8 11 ..  5   .. .. .. .. 
+ .. 10 .. ..   .. .. 15 16    2 .. .. ..    3  4 13 .. 
+ .. ..  2  5   .. 13 .. ..   ..  3 .. ..   ..  9 .. 12 
+ ..  8 .. ..    1 .. .. ..    7  4 16 ..   .. .. .. .. 
+
+ .. .. .. ..   ..  2  3  8   .. .. .. 14   .. .. 10 .. 
+ 11 ..  4 ..   .. ..  9 ..   .. ..  5 ..   16  1 .. .. 
+ .. 13 15  9   .. .. ..  1   12  6 .. ..   .. ..  4 .. 
+ .. .. .. ..   15 ..  7 14    3 .. ..  2    6 .. .. .. 
+
+ .. 16 12  4   ..  9 .. ..   .. .. 10 ..   .. .. .. 15 
+  7 .. .. ..   11 .. .. ..   .. .. .. ..   .. .. .. .. 
+ .. ..  9 ..   .. ..  2 ..   ..  1 .. 15   ..  5  8 .. 
+ .. ..  3 10   .. .. .. ..   14 .. ..  6   .. .. .. 13 
+eod
+
+var act365 'from http://www.act365.com/sudoku/brain.htm'
+solution <<eod 'Straightforward 4 x 4' $act365
+ 1  2 10 15  8 16 13  5 11 12  6  3  7 14  9  4
+ 9 11  6  8  4 14 10  3  1 16  2  7 13 15 12  5
+ 4  5 16 12  7  1 11  9 15  8 14 13 10  6  3  2
+ 3  7 14 13  2 12  6 15  5 10  9  4 11  8  1 16
+12  9  1 14  6  3  4  7  8 11 13  5  2 16 15 10
+ 6 10 11  7  9  5 15 16  2 14 12  1  3  4 13  8
+16  4  2  5 14 13  8 11  6  3 15 10  1  9  7 12
+15  8 13  3  1 10 12  2  7  4 16  9  5 11  6 14
+ 5  6  7  1 16  2  3  8  4 13 11 14 15 12 10  9
+11  3  4  2 13  6  9 12 10 15  5  8 16  1 14  7
+14 13 15  9 10 11  5  1 12  6  7 16  8  2  4  3
+10 12  8 16 15  4  7 14  3  9  1  2  6 13  5 11
+ 8 16 12  4  5  9  1  6 13  7 10 11 14  3  2 15
+ 7 15  5  6 11  8 14 13  9  2  3 12  4 10 16  1
+13 14  9 11  3  7  2 10 16  1  4 15 12  5  8  6
+ 2  1  3 10 12 15 16  4 14  5  8  6  9  7 11 13
 eod
 
 set latin 4

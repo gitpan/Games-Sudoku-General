@@ -40,8 +40,9 @@ Even on the standard 9 x 9 Sudoku topology there are variants in which
 unspecified cells are constrained in various ways (odd/even, high/low).
 Such variants are accomodated by defining named constraints in terms
 of the values allowed, and then giving the constraint name for each
-unoccupied cell to which it applies. See L</allowed_symbols> for
-more information and an example.
+unoccupied cell to which it applies. See
+L<allowed_symbols|/item_allowed_symbols> for more information and an
+example.
 
 This module is able not only to solve a variety of Sudoku-like
 puzzles, but to 'explain' how it arrived at its solution. The
@@ -49,7 +50,7 @@ steps() method, called after a solution is generated, lists in order
 what solution constraints were applied, what cell each constraint
 is applied to, and what symbol the cell was constrained to. For
 examples, see the test script t/sudoku.t. ActivePerl users will have
-to download the kit from L<www.cpan.org> to get this file.
+to download the kit from L<http://www.cpan.org/> to get this file.
 
 =head2 Exported symbols
 
@@ -124,13 +125,14 @@ string (e.g. $su->set (allowed_symbols => 'o=');). To eliminate all
 symbol sets, set the entire attribute to the empty string.
 
 Allowed symbol set names may not conflict with symbol names. If you set
-the symbol attribute, all symbol constraints are deleted, because
+the symbol attribute, all allowed symbol sets are deleted, because
 that seemed to be the most expeditious way to enforce this restriction
 across a symbol set change.
 
 Because symbol set names must be parsed like symbol names when a
 problem is defined, they also affect the need for whitespace on
-problem input. See the L</problem> documentation for full details.
+problem input. See the L<problem()|/item_problem> documentation for
+full details.
 
 =item columns (number)
 
@@ -172,6 +174,18 @@ generates a topology that looks like this
 
 The overall size of the puzzle must be a multiple of both the
 horizontal and vertical rectangle size.
+
+Setting this modifies the following "real" attributes:
+
+ columns is set to the size of the big square;
+ symbols is set to "." and the numbers "1", "2",
+   and so on, up to the size of the big square;
+ topology is set to represent the rows,  columns,
+   and small squares in the big square, with row
+   sets named "r0", "r1", and so on, column sets
+   named "c0", "c1", and so on, and small
+   rectangle sets named "s0", "s1", and so on for
+   historical reasons.
 
 =item iteration_limit (number)
 
@@ -239,26 +253,20 @@ configured to handle a standard Sudoku square. The value gives the size
 of the small squares into which the big square is divided. The big
 square's side is the square of the value.
 
-Setting this modifies the following "real" attributes:
-
- columns is set to the size of the big square;
- symbols is set to "." and the numbers "1", "2",
-   and so on, up to the size of the big square;
- topology is set to represent the rows,  columns,
-   and small squares in the big square, with row
-   sets named "r0", "r1", and so on, column sets
-   named "c0", "c1", and so on, and small square
-   sets named "s0", "s1", and so on.
-
 For example, the customary Sudoku topology is set by
 
  $su->set (sudoku => 3);
+
+This attribute is implemented in terms of 'set brick', and modifies the
+same "real" attributes. See L<brick|/item_brick> for the details.
 
 =item sudokux (number, write-only)
 
 This attribute is a convenience. It is similar to the 'sudoku'
 attribute, but the topology includes both main diagonals (set names
-'d0' and 'd1') in addition to the standard sets.
+'d0' and 'd1') in addition to the standard sets. See
+L<brick|/item_brick> for the details, since that's ultimately how this
+attribute is implemented.
 
 =item symbols (string)
 
@@ -267,7 +275,7 @@ printing characters may be used except ",". Multi-character symbols
 are supported. The value of the attribute is a whitespace-delimited
 list of the symbols, though the whitespace is optional if all symbols
 (and symbol constraints if any) are a single character. See the
-L</problem> documentation for full details.
+L<problem()|/item_problem> documentation for full details.
 
 The first symbol in the list is the one that represents an empty cell.
 Except for this, the order of the symbols is immaterial.
@@ -317,7 +325,7 @@ use warnings;
 
 use base qw{Exporter};
 
-our $VERSION = '0.001';
+our $VERSION = '0.002';
 our @EXPORT_OK = qw{
 	SUDOKU_SUCCESS
 	SUDOKU_NO_SOLUTION
@@ -375,11 +383,45 @@ my $self = bless {debug => 0, iteration_limit => 0,
 @_ and $self->set (@_);
 $self->{cell} or $self->set (sudoku => 3);
 $self->{symbol_list} or $self->set (symbols => join ' ', '.', 1 .. $self->{largest_set});
-##. 1 2 3 4 5 6 7 8 9
-##eod
 defined $self->{columns} or $self->set (columns => @{$self->{symbol_list}} - 1);
 defined $self->{status_value} or $self->set (status_value => SUDOKU_SUCCESS);
 $self;
+}
+
+=item $sd->add_set ($name => $cell ...)
+
+This method adds to the current topology a new set with the given name,
+and consisting of the given cells. The set name must not already
+exist, but the cells must already exist. In other words, you can't
+modify an existing set with this method, nor can you add new cells.
+
+=cut
+
+sub add_set {
+my $self = shift;
+my $name = shift;
+$self->{set}{$name} and croak <<eod;
+Error - Set '$name' already exists.
+eod
+foreach my $inx (@_) {$self->{cell}[$inx] or croak <<eod}
+Error - Cell $inx does not exist.
+eod
+foreach my $inx (@_) {
+    my $cell = $self->{cell}[$inx];
+    foreach my $other (@{$cell->{membership}}) {
+	my $int = join ',', sort $other, $name;
+	$self->{intersection}{$int} ||= [];
+	push @{$self->{intersection}{$int}}, $inx;
+	}
+    @{$cell->{membership}} = sort $name, @{$cell->{membership}};
+    }
+$self->{set}{$name} = {
+    name => $name,
+    membership => [sort @_],
+    };
+$self->{largest_set} = max ($self->{largest_set},
+    scalar @{$self->{set}{$name}{membership}});
+delete $self->{backtrack_stack};	# Force setting of new problem.
 }
 
 
@@ -392,14 +434,17 @@ scalar context it returns a string representing the constraints used
 at least once, in canonical order (i.e. in the order documented in the
 steps() method).
 
+B<Note:> As of version 0.002, the string returned by the scalar has
+spaces delimiting the constraint names. They were not delimited in
+version 0.001
+
 =cut
 
 sub constraints_used {
 my $self = shift;
 return unless $self->{constraints_used} && defined wantarray;
 return %{$self->{constraints_used}} if wantarray;
-my $rslt = join '', grep {$self->{constraints_used}{$_}} qw{F N B T X Y W ?};
-$rslt .= '.' if $self->{constraints_used}{''};
+my $rslt = join ' ', grep {$self->{constraints_used}{$_}} qw{F N B T X Y W ?};
 $rslt;
 }
 
@@ -513,7 +558,7 @@ my $val = shift || '';
 $val =~ m/\S/ or
     $val = "$self->{symbol_list}[0] " x
     scalar @{$self->{cell}};
-$val =~ s/\s+//g unless $self->{symbol_delimit};
+$val =~ s/\s+//g unless $self->{biggest_spec} > 1;
 $val =~ s/^\s+//;
 $val =~ s/\s+$//;
 $self->{debug} and print <<eod;
@@ -542,7 +587,7 @@ $self->{cells_unassigned} = scalar @{$self->{cell}};
 my $hash = $self->{symbol_hash};
 my $inx = 0;
 my $max = @{$self->{cell}};
-foreach (split (($self->{symbol_delimit} ? '\s+' : ''), $val)) {
+foreach (split (($self->{biggest_spec} > 1 ? '\s+' : ''), $val)) {
     $inx >= $max and croak <<eod;
 Error - Too many cell specifications. The topology allows only $max.
 eod
@@ -675,12 +720,7 @@ eod
   else {
     $self->{allowed_symbols} = {};
     }
-$self->{symbol_delimit} = ' ' if $maxlen > 1;
-$self->{debug} and print <<eod;
-Debug set_allowed_symbols - at end
-    maxlen = $maxlen
-    symbol_delimit = '$self->{symbol_delimit}'
-eod
+$self->{biggest_spec} = $maxlen if $maxlen > $self->{biggest_spec};
 }
 
 sub _set_brick {
@@ -751,19 +791,10 @@ sub _set_sudoku {
 my $self = shift;
 my $name = shift;
 my $order = shift;
-my $size = $order * $order;
-my $syms = '.';
-my $topo = '';
-for (my $row = 0; $row < $size; $row++) {
-    $syms .= " @{[$row + 1]}";
-    for (my $col = 0; $col < $size; $col++) {
-	$topo .= sprintf ' r%d,c%d,s%d', $row, $col,
-		floor ($row / 3) * 3 + floor ($col / 3);
-	}
-    }
-substr ($topo, 0, 1, '');
-$self->set (columns => $size, symbols => $syms, topology => $topo);
+$self->set (brick => [$order, $order, $order * $order]);
 }
+
+=begin comment
 
 sub _set_sudokux {
 my $self = shift;
@@ -776,7 +807,7 @@ for (my $row = 0; $row < $size; $row++) {
     $syms .= " @{[$row + 1]}";
     for (my $col = 0; $col < $size; $col++) {
 	my $cell = sprintf ' r%d,c%d,s%d', $row, $col,
-		floor ($row / 3) * 3 + floor ($col / 3);
+		floor ($row / $order) * 3 + floor ($col / $order);
 	$cell .= ',d0' if $row == $col;
 	$cell .= ',d1' if $row == $size - $col - 1;
 	$topo .= $cell;
@@ -784,6 +815,22 @@ for (my $row = 0; $row < $size; $row++) {
     }
 substr ($topo, 0, 1, '');
 $self->set (columns => $size, symbols => $syms, topology => $topo);
+}
+
+=end comment
+
+=cut
+
+sub _set_sudokux {
+my $self = shift;
+my $name = shift;
+my $order = shift;
+$self->set (sudoku => $order);
+my $size = $order * $order;
+my $size_minus_1 = $size - 1;
+my $size_plus_1 = $size + 1;
+$self->add_set (d0 => map {$_ * $size_plus_1} 0 .. $size_minus_1);
+$self->add_set (d1 => map {$_ * $size_minus_1} 1 .. $size);
 }
 
 sub _set_symbols {
@@ -808,7 +855,7 @@ eod
 $self->{symbol_list} = \@lst;
 $self->{symbol_hash} = \%hsh;
 $self->{symbol_number} = scalar @lst;
-$self->{symbol_delimit} = $maxlen > 1 ? ' ' : '';
+$self->{biggest_spec} = $self->{biggest_symbol} = $maxlen;
 $self->{allowed_symbols} = {};
 }
 
@@ -972,9 +1019,10 @@ element is the name of the constraint applied:
      occur outside those cells, so any other values
      in the tuple are supressed.
  ? = no constraint: generated in backtrack mode.
- 
- See L<http://www.paulspages.co.uk/sudoku/howtosolve/> for fuller
- definitions of the constraints and how they are applied.
+
+See L<http://www.research.att.com/~gsf/sudoku/> and
+L<http://www.angusj.com/sudoku/hints.php> for fuller
+definitions of the constraints and how they are applied.
 
 The second value is the cell number, as defined by the topology
 setting. For the 'sudoku' and 'latin' settings, the cells are
@@ -1108,8 +1156,13 @@ while (my ($name, $set) = each %{$self->{set}}) {
     for (my $val = 1; $val < $limit; $val++) {
 	next unless $suppliers[$val] && @{$suppliers[$val]} == 1;
 	my $inx = $suppliers[$val][0];
-	$self->_try ($inx, $val) and die <<eod;
-Programming error - Passed 'N' constraint but _try failed.
+	$self->_try ($inx, $val) and die <<eod, $self->{debug} ? <<eod : ();
+Programming error - Cell $inx passed 'N' constraint but try of
+        $self->{symbol_list}[$val] failed.
+eod
+@{[$self->_unload
+]}         set: $name
+        cell: @{[Dumper ($self->{cell}[$inx])]}
 eod
 	my $constraint = [N => [$inx, $val]];
 	$self->{debug} and
@@ -1332,7 +1385,9 @@ eod
 			    $contributed->[$val] > $tcontr[$val];
 			my @ccl;
 			for (my $inx = 0; $inx < @$open; $inx++) {
-			    next unless $tuple_member[$inx];
+			    next unless $tuple_member[$inx]
+				&& !$open->[$inx]{possible}{$val}
+				;
 			    $open->[$inx]{possible}{$val} = 1;
 			    --$contributed->[$val];
 			    --$tcontr[$val];
@@ -1420,9 +1475,12 @@ my $stack = $self->{backtrack_stack} or return SUDOKU_NO_SOLUTION;
 my $used = $self->{constraints_used} ||= {};
 my $inx = @$stack;
 my $syms = @{$self->{symbol_list}};
+$self->{debug} && $inx and print <<eod;
+# Debug - Backtracking
+eod
+my $old = $inx;
 while (--$inx >= 0) {
-    my $constraint = $stack->[$inx][0] or
-	return SUDOKU_SUCCESS;
+    my $constraint = $stack->[$inx][0];
     --$used->{$constraint};
     if ($constraint eq 'F' || $constraint eq 'N') {
 	foreach my $ref (reverse @{$stack->[$inx]}) {
@@ -1453,6 +1511,11 @@ eod
 		$used->{$constraint}++;
 		$stack->[$inx][1][0] = $cell->{index};
 		$stack->[$inx][1][1] = $val;
+		$self->{debug} and print <<eod;
+# Debug - Backtrack complete. @{[$old - @$stack]} constraints removed.
+#         Resuming puzzle at stack depth @{[$inx + 1]} with
+#         @{[$self->_format_constraint ($stack->[$inx])]}
+eod
 		return SUDOKU_SUCCESS;
 		}
 	    shift @$tries;
@@ -1464,6 +1527,10 @@ Programming Error - No code provided to remove constraint '$constraint' from sta
 eod
     pop @$stack;
     }
+$self->{debug} and print <<eod;
+# Debug - Backtrack complete. @{[$old - @$stack]} constraints removed.
+#         No more solutions to the puzzle exist.
+eod
 $self->{no_more_solutions} = 1;
 return SUDOKU_NO_SOLUTION;
 }
@@ -1565,9 +1632,10 @@ my $prefix = shift || '';
 @_ and do {$self->set (status_value => $_[0]); $_[0] and return undef};
 my $rslt = '';
 my $col = $self->{columns};
+my $fmt = "%$self->{biggest_symbol}s";
 foreach (@{$self->{cell}}) {
     $col == $self->{columns} and $rslt .= $prefix;
-    $rslt .= $self->{symbol_list}[$_->{content} || 0];
+    $rslt .= sprintf $fmt, $self->{symbol_list}[$_->{content} || 0];
     if (--$col > 0) {$rslt .= $self->{output_delimiter}}
       else {$rslt .= "\n"; $col = $self->{columns};}
     }
@@ -1618,6 +1686,16 @@ provided a treasure trove of 'non-standard' Sudoku puzzles.
 
  0.001 T. R. Wyant
    Initial release to CPAN.
+ 0.002 T. R. Wyant
+   Format solution nicely for multi-character symbols.
+   Fixed error in values eliminated by a hidden tuple.
+   Recoded 'set sudokug' in terms of 'set brick', thus
+     fixing an error in generating the small squares.
+   Added method add_set(), and recoded 'set sudokux' in
+     terms of this and 'set sudokug', thus fixing the
+     same error that 'set sudoku' had.
+   Put spaces in the result of scalar constraints_used.
+   Spiffed up the POD.
 
 =head1 SEE ALSO
 
@@ -1680,11 +1758,10 @@ and/or modify it under the same terms as Perl itself.
 #  A {allowed_symbols}{$name} = [] # The list contains a 1 if the
 #				# symbol's value is allowed under the
 #				# named symbol set.
-#  A {symbol_delimit}		# Input symbol delimiter for problem.
-#				# Set to ' ' if any symbols or symbol
-#				# constraints are more than one char-
-#				# acter long, else ''. If '', no
-#				# delimiter is required.
+#  A {biggest_spec}		# Number of characters in biggest
+#				# symbol or allowed value set name.
+#  A {biggest_symbol}		# Number of characters in biggest
+#				# symbol.
 #  A {symbol_hash} = {}		# A hash of symbols, giving the internal
 #				# value for each.
 #  A {symbol_list} = []		# A list of the symbols used, in order
