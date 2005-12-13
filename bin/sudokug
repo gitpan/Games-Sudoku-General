@@ -3,6 +3,7 @@
 use strict;
 use warnings;
 
+use Config;
 use FileHandle;
 use Games::Sudoku::General;
 use Pod::Usage;
@@ -10,7 +11,7 @@ use Term::ReadLine;
 use Text::ParseWords;
 use UNIVERSAL qw{can};
 
-our $VERSION = '0.001';
+our $VERSION = '0.003';
 
 my $rdln = Term::ReadLine->new ('Solve Sudoku and other set-allocation puzzles');
 my $OUT = $rdln->OUT || \*STDOUT;
@@ -18,6 +19,7 @@ my $OUT = $rdln->OUT || \*STDOUT;
 print $OUT <<eod;
 sudokug version $VERSION
 based on Games::Sudoku::General version @{[Games::Sudoku::General->VERSION]}
+Perl $Config{version} under $Config{osname} $Config{osvers}
 
 Solve Sudoku and other set-allocation puzzles.
 
@@ -229,6 +231,15 @@ L<Games::Sudoku::General>, or (equivalently) use the command
 
 =over
 
+=item add_set
+
+This command adds a set to an existing topology. The arguments are the
+name of the new set, and the numbers of the existing cells that are to
+be members of it.
+
+Cells are numbered from 0 in the order in which they were defined by
+the topology. Typically this is row order.
+
 =item constraints_used
 
 This command lists the constraints used to provide the most recent
@@ -266,12 +277,12 @@ the one you already have.
 
 =item problem string
 
-This command specifies the problem to be solved, in row order. The
-problem string must be specified in terms of the currently-valid
-symbols. Whitespace between the symbols is always allowed, but is
-required only if at least one symbol consists of more than one
-character. Any invalid symbol is taken to represent an unspecified
-cell.
+This command specifies the problem to be solved, in the order they were
+defined by the topology (typically row order). The problem string must
+be specified in terms of the currently-valid symbols. Whitespace
+between the symbols is always allowed, but is required only if at least
+one symbol consists of more than one character. Any invalid symbol is
+taken to represent an unspecified cell.
 
 Line breaks may be given (as in the L</SYNOPSIS>), but are treated
 like any other whitespace.
@@ -328,18 +339,18 @@ possible in the given cells, because they lie outside a set
 intersection that must contain that value. The given value is
 eliminated as a possibility for the given cells.
 
-T naked [[cell cell ...] value] ... - "naked tuple". The given value
-is not possible for the given cell because there exists a "tuple"
-(pair, triple, ...) of cells which must contain this value, and the
-given cells are not in the tuple. More than one value can be given,
-with a list of cells for each. The given value is eliminated as a
-possibility for the given cells.
+T naked size [[cell cell ...] value] ... - "naked tuple". The given
+value is not possible for the given cell because there exists a "tuple"
+(pair, triple, ...) of cells of the given size which must contain this
+value, and the given cells are not in the tuple. More than one value
+can be given, with a list of cells for each. The given value is
+eliminated as a possibility for the given cells.
 
-T hidden [[cell cell ...] value] ... - "hidden tuple". The given
-cells are part of a "tuple" of cells that must contain a same-sized
-"tuple" of values, but the given values are not part of the "tuple"
-of values that must be contained in those cells. The given value is
-eliminated as a possibility for the given cell.
+T hidden size [[cell cell ...] value] ... - "hidden tuple". The given
+cells are part of a "tuple" of cells of the given size that must
+contain a same-sized "tuple" of values, but the given values are not
+part of the "tuple" of values that must be contained in those cells.
+The given value is eliminated as a possibility for the given cell.
 
 ? [cell value] - "backtrack". If derivation of the solution reaches
 a point where none of the above rules can be applied, we simply take
@@ -378,17 +389,6 @@ command.
 This attribute is used to specify and name sets of allowed symbols. See
 above for an example.
 
-=item columns (number)
-
-This attribute specifies the number of cells displayed on topology or
-solution output. It has nothing to do with the problem itself, and
-no effect on problem input.
-
-=item debug (number)
-
-This attribute displays debugging information. The only supported value
-is 0.
-
 =item brick (string, write-only)
 
 This pseudo-attribute sets the topology, symbols, and columns for a
@@ -396,6 +396,52 @@ Sudoku puzzle involving rectangular regions rather than square ones.
 The value is a comma-delimited string of three numbers representing
 the horizontal and vertical dimensions of the rectangular regions, and
 the size of the enclosing square.
+
+=item columns (number)
+
+This attribute specifies the number of cells displayed on topology or
+solution output. It has nothing to do with the problem itself, and
+no effect on problem input.
+
+=item corresponding (number)
+
+This pseudo-attribute sets the topology, symbols, and columns for a
+Sudoku puzzle having the additional restriction that corresponding
+cells in the small squares must contain different numbers. The value
+is the size of the small square (i.e. the same as the value for
+L</sudoku>. Also called "disjoint groups".
+
+=item cube (string, write-only)
+
+This pseudo-attribute sets the topology, symbols, and columns for a
+Sudoko puzzle on the faces of a cube. There are two geometries
+supported; which one is actually generated is selected by the argument:
+
+* 'full' generates a puzzle on all 6 faces of the cube. The sets are
+the faces of the cube and the "stripes" of cells running around the
+cube in all three directions. The problem is entered face-by-face;
+if you imagine the cube unfolded into a Latin cross, work top-to-bottom
+and left-to-right.
+
+* 'half' generates a puzzle on the visible 3 faces of an isometric view
+of a cube. The sets are halves of the face and the visible "stripes".
+Imagine the visible part of the cube unfolded into the letter "L", with
+the top and right faces divided horizontally, and the remaining face
+divided vertically. Enter the problem working top-to-bottom and
+left-to-right.
+
+B<Caveat:> The symbols generated for a 'full' cube are 1 .. 16. The
+example I have (from L<http://www.mathrec.org/sudoku/sudokucube.gif>)
+uses 0 through F. If you have one of these, remember to 'set symbols'
+after you 'set cube full'.
+
+See L<Games::Sudoku::General> (or 'help lib') for a fuller discussion,
+with cheesy typed diagrams.
+
+=item debug (number)
+
+This attribute displays debugging information. The only supported value
+is 0.
 
 =item iteration_limit (number)
 
@@ -412,6 +458,11 @@ topology.
 This pseudo-attribute sets the topology to a Latin square, and the
 symbol set to the requisite number of letters. The argument is the
 size of the square.
+
+=item max_tuple (number)
+
+This attribute is the maximum tuple size considered when applying
+the tuple constraint.
 
 =item name (string)
 
@@ -459,6 +510,14 @@ This attribute sets the current topology in terms of a list of the
 sets to which each cell belongs.
 
 =back
+
+=head1 MODIFICATIONS
+
+ 0.001 T. R. Wyant
+   Initial release
+ 0.003 T. R. Wyant
+   Documented methods and attributes added
+   since 0.001.
 
 =head1 AUTHOR
 

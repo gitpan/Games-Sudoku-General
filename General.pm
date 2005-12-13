@@ -21,8 +21,8 @@ Games::Sudoku::General - Solve sudoku-like puzzles.
 
 This package solves puzzles that involve the allocation of symbols
 among a number of sets, such that no set contains more than one of
-any symbol. This class of puzzle includes the game known as 'Sudoku',
-'Number Place', or 'Wasabi'.
+any symbol. This class of problem includes the puzzles known as
+'Sudoku', 'Number Place', and 'Wasabi'.
 
 Each Sudoku puzzle is considered to be made up of a number of cells,
 each of which is a member of one or more sets, and each of which may
@@ -38,19 +38,21 @@ the user has the option of hand-specifying an arbitrary topology.
 
 Even on the standard 9 x 9 Sudoku topology there are variants in which
 unspecified cells are constrained in various ways (odd/even, high/low).
-Such variants are accomodated by defining named constraints in terms
-of the values allowed, and then giving the constraint name for each
-unoccupied cell to which it applies. See
-L<allowed_symbols|/item_allowed_symbols> for more information and an
-example.
+Such variants are accomodated by defining named sets of allowed
+symbols, and then giving the set name for each unoccupied cell to which
+it applies. See L<allowed_symbols|/item_allowed_symbols> for more
+information and an example.
 
 This module is able not only to solve a variety of Sudoku-like
 puzzles, but to 'explain' how it arrived at its solution. The
 steps() method, called after a solution is generated, lists in order
 what solution constraints were applied, what cell each constraint
-is applied to, and what symbol the cell was constrained to. For
-examples, see the test script t/sudoku.t. ActivePerl users will have
-to download the kit from L<http://www.cpan.org/> to get this file.
+is applied to, and what symbol the cell was constrained to.
+
+Test script t/sudoku.t demonstrates these features. ActivePerl users
+will have to download the kit from L<http://www.cpan.org/>  or
+L<http://search.cpan.org/~wyant/> to get this
+file.
 
 =head2 Exported symbols
 
@@ -134,19 +136,6 @@ problem is defined, they also affect the need for whitespace on
 problem input. See the L<problem()|/item_problem> documentation for
 full details.
 
-=item columns (number)
-
-This attribute defines the number of columns of data to be used when
-formatting the topology attribute, or the solution to a puzzle.
-
-=item debug (number)
-
-This attribute, if not 0, causes debugging information to be displayed.
-Values other than 0 are not supported, in the sense that the author
-makes no commitment what will happen when a non-zero value is set, and
-further reserves the right to change this behaviour without notice of
-any sort, and without documenting the changes.
-
 =item brick (string, write-only)
 
 This "virtual" attribute is a convenience, which causes the object to
@@ -187,6 +176,114 @@ Setting this modifies the following "real" attributes:
    rectangle sets named "s0", "s1", and so on for
    historical reasons.
 
+=item columns (number)
+
+This attribute defines the number of columns of data to be used when
+formatting the topology attribute, or the solution to a puzzle.
+
+=item corresponding (number, write-only)
+
+This "virtual" attribute is a convenience, which causes the object
+to be configured for "corresponding-cell" Sudoku. The topology is
+the same as 'set L<sudoku|/item_sudoku>', but in addition corresponding
+cells in the small squares must have different values. The extra set
+names are "u0", "u1", and so on.
+
+This kind of puzzle is also called "disjoint groups."
+
+=item cube (string, write-only)
+
+This "virtual" attribute is a convenience, which causes the object to
+be configured for cubical sudoku. The string takes one of the following
+values:
+
+* 'full' generates a topology that includes all faces of the cube. The
+sets are the faces of the cube, and the rows, columns, and (for lack
+of a better word) planes of cells that circle the cube.
+
+To enter the problem, imagine the cube unfolded to make a Latin cross.
+Then, enter the problem in order by faces, rows, and columns, top to
+bottom and left to right. The order of entry is actually in order by
+cell number, as given below.
+
+               +-------------+
+               |  0  1  2  3 |
+               |  4  5  6  7 |
+               |  8  9 10 11 |
+               | 12 13 14 15 |
+ +-------------+-------------+-------------+
+ | 16 17 18 19 | 32 33 34 35 | 48 49 50 51 |
+ | 20 21 22 23 | 36 37 38 39 | 52 53 54 55 |
+ | 24 25 26 27 | 40 41 42 43 | 56 57 58 59 |
+ | 28 29 30 31 | 44 45 46 47 | 60 61 62 63 |
+ +-------------+-------------+-------------+
+               | 64 65 66 67 |
+               | 68 69 70 71 |
+               | 72 73 74 75 |
+               | 76 77 78 79 |
+               +-------------+
+               | 80 81 82 83 |
+               | 84 85 86 87 |
+               | 88 89 90 91 |
+               | 92 93 94 95 |
+               +-------------+
+
+The solution will be displayed in order by cell number, with line
+breaks controlled by the L<columns|/item_columns> attribute, just
+like any other solution presented by this package.
+
+I have seen such puzzles presented with the bottom square placed to the
+right and rotated counterclockwise 90 degrees. You will need to perform
+the opposite rotation when you enter the problem.
+
+* 'half' generates a topology that looks like an isometric view of a
+cube, with the puzzle on the visible faces. The faces are divided in
+half, since the set size here is 8, not 16. Imagine the isometric
+unfolded to make an L-shape. Then, enter the problem in order by faces,
+rows, and columns, top to bottom and left to right. The order of entry
+is actually in order by cell number, as given below.
+
+ +-------------------+
+ |  0    1    2    3 |
+ |                   |
+ |  4    5    6    7 |
+ +-------------------+
+ |  8    9   10   11 |
+ |                   |
+ | 12   13   14   15 |
+ +---------+---------+-------------------+
+ | 16   17 | 18   19 | 32   33   34   35 |
+ |         |         |                   |
+ | 20   21 | 22   23 | 36   37   38   39 |
+ |         |         +-------------------+
+ | 24   25 | 26   27 | 40   41   42   43 |
+ |         |         |                   |
+ | 28   29 | 30   31 | 44   45   46   47 |
+ +---------+---------+-------------------+
+
+The solution will be displayed in order by cell number, with line
+breaks controlled by the L<columns|/item_columns> attribute, just
+like any other solution presented by this package.
+
+For all the 'cube' puzzles, the L</columns> attribute is set to 4, and
+the L<symbols|/item_symbols> attribute to the numbers 1 to the size of
+the largest set (16 for the full cube, 8 for the half or isometric
+cube). I have seen full cube puzzles done with hex digits 0 to F; these
+are handled most easily by setting the L<symbols|/item_symbols>
+attribute appropriately:
+
+ $su->set (cube => 'full', symbols => <<eod);
+ . 0 1 2 3 4 5 6 7 8 9 A B C D E F
+ eod
+
+=item debug (number)
+
+This attribute, if not 0, causes debugging information to be displayed.
+Values other than 0 are not supported, in the sense that the author
+makes no commitment what will happen when a non-zero value is set, and
+further reserves the right to change this behaviour without notice of
+any sort, and without documenting the changes.
+
 =item iteration_limit (number)
 
 This attribute governs how hard the solution() method tries to solve
@@ -216,6 +313,15 @@ the square. Setting this modifies the following "real" attributes:
    of a square, with row sets named "r0", "r1",
    and so on, and the column sets named "c0",
    "c1", and so on.
+
+=item max_tuple (number)
+
+This attribute represents the maximum-sized tuple to consider for the
+tuple constraint. It is possible that one might want to modify this
+upward for large puzzles, or downward for small ones.
+
+The default is 4, meaning that the solution considers doubles, triples,
+and quads only.
 
 =item name (string)
 
@@ -325,7 +431,7 @@ use warnings;
 
 use base qw{Exporter};
 
-our $VERSION = '0.002';
+our $VERSION = '0.003';
 our @EXPORT_OK = qw{
 	SUDOKU_SUCCESS
 	SUDOKU_NO_SOLUTION
@@ -385,10 +491,11 @@ $self->{cell} or $self->set (sudoku => 3);
 $self->{symbol_list} or $self->set (symbols => join ' ', '.', 1 .. $self->{largest_set});
 defined $self->{columns} or $self->set (columns => @{$self->{symbol_list}} - 1);
 defined $self->{status_value} or $self->set (status_value => SUDOKU_SUCCESS);
+defined $self->{max_tuple} or $self->set (max_tuple => 4);
 $self;
 }
 
-=item $sd->add_set ($name => $cell ...)
+=item $su->add_set ($name => $cell ...)
 
 This method adds to the current topology a new set with the given name,
 and consisting of the given cells. The set name must not already
@@ -644,8 +751,11 @@ my %mutator = (
     brick => \&_set_brick,
     columns => \&_set_number,
     debug => \&_set_number,
+    corresponding => \&_set_corresponding,
+    cube => \&_set_cube,
     iteration_limit => \&_set_number,
     latin => \&_set_latin,
+    max_tuple => \&_set_number,
     name => \&_set_value,
     output_delimiter => \&_set_value,
     status_value => \&_set_status_value,
@@ -743,6 +853,73 @@ for (my $row = 0; $row < $size; $row++) {
     }
 substr ($topo, 0, 1, '');
 $self->set (columns => $size, symbols => $syms, topology => $topo);
+}
+
+sub _set_corresponding {
+my $self = shift;
+my $name = shift;
+my $order = shift;
+my $size = $order * $order;
+my $size_minus_1 = $size - 1;
+$self->set (sudoku => $order);
+for (my $inx = 0; $inx < $size; $inx++) {
+    $self->add_set ("u$inx", map {$_ * $size + $inx} 0 .. $size_minus_1);
+    }
+}
+
+my %cube = (
+    full => <<eod,
+c0,r0,s0 c1,r0,s0 c2,r0,s0 c3,r0,s0
+c0,r1,s0 c1,r1,s0 c2,r1,s0 c3,r1,s0
+c0,r2,s0 c1,r2,s0 c2,r2,s0 c3,r2,s0
+c0,r3,s0 c1,r3,s0 c2,r3,s0 c3,r3,s0
+p0,r0,s1 p0,r1,s1 p0,r2,s1 p0,r3,s1
+p1,r0,s1 p1,r1,s1 p1,r2,s1 p1,r3,s1
+p2,r0,s1 p2,r1,s1 p2,r2,s1 p2,r3,s1
+p3,r0,s1 p3,r1,s1 p3,r2,s1 p3,r3,s1
+c0,p0,s2 c1,p0,s2 c2,p0,s2 c3,p0,s2
+c0,p1,s2 c1,p1,s2 c2,p1,s2 c3,p1,s2
+c0,p2,s2 c1,p2,s2 c2,p2,s2 c3,p2,s2
+c0,p3,s2 c1,p3,s2 c2,p3,s2 c3,p3,s2
+p0,r3,s3 p0,r2,s3 p0,r1,s3 p0,r0,s3
+p1,r3,s3 p1,r2,s3 p1,r1,s3 p1,r0,s3
+p2,r3,s3 p2,r2,s3 p2,r1,s3 p2,r0,s3
+p3,r3,s3 p3,r2,s3 p3,r1,s3 p3,r0,s3
+c0,r3,s4 c1,r3,s4 c2,r3,s4 c3,r3,s4
+c0,r2,s4 c1,r2,s4 c2,r2,s4 c3,r2,s4
+c0,r1,s4 c1,r1,s4 c2,r1,s4 c3,r1,s4
+c0,r0,s4 c1,r0,s4 c2,r0,s4 c3,r0,s4
+c0,p3,s5 c1,p3,s5 c2,p3,s5 c3,p3,s5
+c0,p2,s5 c1,p2,s5 c2,p2,s5 c3,p2,s5
+c0,p1,s5 c1,p1,s5 c2,p1,s5 c3,p1,s5
+c0,p0,s5 c1,p0,s5 c2,p0,s5 c3,p0,s5
+eod
+    half => <<eod,
+r0,c0,s0 r0,c1,s0 r0,c2,s0 r0,c3,s0
+r1,c0,s0 r1,c1,s0 r1,c2,s0 r1,c3,s0
+r2,c0,s1 r2,c1,s1 r2,c2,s1 r2,c3,s1
+r3,c0,s1 r3,c1,s1 r3,c2,s1 r3,c3,s1
+p0,c0,s2 p0,c1,s2 p0,c2,s3 p0,c3,s3
+p1,c0,s2 p1,c1,s2 p1,c2,s3 p1,c3,s3
+p2,c0,s2 p2,c1,s2 p2,c2,s3 p2,c3,s3
+p3,c0,s2 p3,c1,s2 p3,c2,s3 p3,c3,s3
+p0,r3,s4 p0,r2,s4 p0,r1,s4 p0,r0,s4
+p1,r3,s4 p1,r2,s4 p1,r1,s4 p1,r0,s4
+p2,r3,s5 p2,r2,s5 p2,r1,s5 p2,r0,s5
+p3,r3,s5 p3,r2,s5 p3,r1,s5 p3,r0,s5
+eod
+    );
+
+sub _set_cube {
+my $self = shift;
+my $name = shift;
+my $type = shift;
+$cube{$type} or croak <<eod;
+Error - Cube type '$type' is not defined. Legal values are
+        @{[join ', ', map {"'$_'"} sort keys %cube]}
+eod
+$self->set (topology => $cube{$type}, columns => 4);
+$self->set (symbols => join ' ', '.', 1 .. $self->{largest_set});
 }
 
 sub _set_latin {
@@ -923,77 +1100,6 @@ eod
 $self->_constrain ();
 }
 
-=begin comment
-
-sub _backtrack {
-my $self = shift;
-my $syms = @{$self->{symbol_list}};
-my $iteration_limit = $self->{iteration_limit};
-$iteration_limit = undef if $iteration_limit <= 0;
-
-solve_loop:
-while (1) {
-    $self->{debug} > 1 and print
-	"Debug solution - At top of solve loop, backtrack stack = ",
-	Dumper ($self->{backtrack_stack});
-    @{$self->{backtrack_stack}} or
-	return $self->_unload (undef, SUDOKU_NO_SOLUTION);
-
-    my ($constraint, $inx, $val) = @{pop @{$self->{backtrack_stack}}};
-
-    unless ($inx < @{$self->{cell_order}}) {
-	$inx = undef;
-solve_choose_inx:
-	foreach (sort {$a->{free} <=> $b->{free} ||
-		$a->{name} cmp $b->{name}} values %{$self->{set}}) {
-	    $self->{debug} > 1 and print <<eod;
-Debug solution - set $_->{name} free = $_->{free}
-eod
-	    next unless $_->{free};
-	    foreach (@{$_->{membership}}) {
-	    $self->{debug} > 1 and print <<eod;
-            - trying cell $_. Chosen = @{[$self->{cell}[$_]{chosen} ? 'yes' : 'no']}
-eod
-		next if $self->{cell}[$_]{chosen};
-		$inx = @{$self->{cell_order}};
-		push @{$self->{cell_order}}, $_;
-		$self->{cell}[$_]{chosen} = 1;
-		$val = $syms;
-		last solve_choose_inx;
-		}
-	    }
-	}
-    defined $inx or croak <<eod;
-Programming error - Can not find a next cell to work on, but problem
-        not yet solved.
-eod
-
-    my $cell = $self->{cell_order}[$inx];
-    $self->_try ($cell, 0) if $val < $syms;
-
-    while (--$val > 0) {
-	$self->_try ($cell, $val) or do {
-	    push @{$self->{backtrack_stack}}, [undef, $inx, $val];
-	    if ($self->{cells_unassigned}) {
-		$inx++;
-		push @{$self->{backtrack_stack}}, [undef, $inx, $syms];
-		}
-	      else {
-		return $self->_unload (undef, SUDOKU_SUCCESS);
-		}
-	    next solve_loop;
-	    };
-	!defined $iteration_limit || --$iteration_limit > 0 or
-	    return $self->_unload (undef, SUDOKU_TOO_HARD);
-	$self->_try ($cell, 0);
-	}
-    }
-
-}
-
-=end comment
-
-=cut
 
 =item $string = $su->steps ();
 
@@ -1290,7 +1396,7 @@ eod
 	$vacant{$name} = \@open;
 	$tuple[scalar @open] ||= [map {[$_]} 0 .. $#open];
 	}
-    for (my $order = 2; $order < 5; $order++) {
+    for (my $order = 2; $order <= $self->{max_tuple}; $order++) {
 	for (my $inx = 1; $inx < @tuple; $inx++) {
 	    next unless $tuple[$inx];
 	    my $max = $inx - 1;
@@ -1300,18 +1406,16 @@ eod
 	    $tuple[$inx] = undef unless @{$tuple[$inx]};
 	    }
 
-#	Okay, I have generated the blasted tuples. Now I have to see
-#	which ones apply.
-#	Except the tuples I generated were tuples of cells. Wonder if
-#	that's really what I want?
-#	Maybe what I want to do is take the union of all values
-#	provided by the tuple of cells. If the number of values in
-#	this union is not greater than the current order, I have found
-#	a naked tuple, and if this lets me eliminate any values outside
-#	the tuple I can consider the constraint applied. If the number
-#	of values inside the union is greater than the current order, I
-#	need to consider whether any tuple of supplied values is not
-#	represented outside the cell tuple; if so, I have a hidden tuple.
+#	Okay, I have generated the blasted tuples. Now I need to take
+#	the union of all values provided by the tuple of cells. If the
+#	number of values in this union is equal to the current order, I
+#	have potentially found a naked tuple, and if this lets me
+#	eliminate any values outside the tuple I can apply the
+#	constraint. If the number of values inside the union is greater
+#	than the current order, I need to consider whether any tuple of
+#	supplied values is not represented outside the cell tuple; if
+#	so, I have a hidden tuple and can eliminate the superfluous
+#	values.
 
 	foreach my $name (keys %vacant) {
 	    my $open = $vacant{$name};
@@ -1351,7 +1455,7 @@ eod
 
 #	At this point we know we have an "effective" naked tuple.
 
-			$constraint ||= ['T', 'naked'];
+			$constraint ||= ['T', 'naked', $order];
 			@tuple_member or map {$tuple_member[$_] = 1} @$tuple;
 			my @ccl;
 			for (my $inx = 0; $inx < @$open; $inx++) {
@@ -1378,7 +1482,7 @@ eod
 			    $contributed->[$val] == $tcontr[$val];
 			}
 		    next unless $within >= $order;
-		    $constraint = ['T', 'hidden'];
+		    $constraint = ['T', 'hidden', $order];
 		    map {$tuple_member[$_] = 1} @$tuple;
 		    for (my $val = 1; $val < @tcontr; $val++) {
 			next unless $tcontr[$val] &&
@@ -1445,7 +1549,7 @@ for (my $val = 1; $val < $syms; $val++) {
 Programming error - Value $val illegal in cell $cell->{index}, but
         \$self->{possible}{$val} = $self->{possible}{$val}
 eod
-    my $constraint = ['?' => [$cell->{index}, $val], undef, \@try];
+    my $constraint = ['?' => [$cell->{index}, $val]];
     $self->{debug} and
 	print '#    ', $self->_format_constraint ($constraint);
     push @$stack, $constraint;
@@ -1498,28 +1602,28 @@ while (--$inx >= 0) {
 	}
       elsif ($constraint eq '?') {
 	my $start = $stack->[$inx][1][1] + 1;
-	my $tries = $stack->[$inx][3];
-	while (@$tries) {
-	    my $cell = $tries->[0];
-	    $self->_try ($cell, 0);
-	    for (my $val = $start; $val < $syms; $val++) {
-		next if $cell->{possible}{$val};
+	my $cell = $self->{cell}[$stack->[$inx][1][0]];
+	$self->_try ($cell, 0);
+	for (my $val = $start; $val < $syms; $val++) {
+	    next if $cell->{possible}{$val};
 		$self->_try ($cell, $val) and die <<eod;
 Programming error - Try of $val in cell $cell->{index} failed, but
         \$cell->{possible}[$inx] = $cell->{possible}[$inx]
 eod
-		$used->{$constraint}++;
-		$stack->[$inx][1][0] = $cell->{index};
-		$stack->[$inx][1][1] = $val;
-		$self->{debug} and print <<eod;
+	    $used->{$constraint}++;
+	    $stack->[$inx][1][0] = $cell->{index};
+	    $stack->[$inx][1][1] = $val;
+	    $self->{debug} and do {
+		my $x = $self->_format_constraint ($stack->[$inx]);
+		chomp $x;
+		print <<eod;
 # Debug - Backtrack complete. @{[$old - @$stack]} constraints removed.
 #         Resuming puzzle at stack depth @{[$inx + 1]} with
-#         @{[$self->_format_constraint ($stack->[$inx])]}
+#         $self->{cells_unassigned} unassigned cells, guessing
+#         $x
 eod
-		return SUDOKU_SUCCESS;
-		}
-	    shift @$tries;
-	    $start = 1;
+		};
+	    return SUDOKU_SUCCESS;
 	    }
 	}
       else {die <<eod}
@@ -1696,18 +1800,25 @@ provided a treasure trove of 'non-standard' Sudoku puzzles.
      same error that 'set sudoku' had.
    Put spaces in the result of scalar constraints_used.
    Spiffed up the POD.
+ 0.003 T. R. Wyant
+   Added 'set corresponding' and 'set max_tuple'.
+   Added cubic sudoku (via 'set cube').
+   Fixed horrendous inefficiency in backtrack logic.
 
 =head1 SEE ALSO
 
-The Games-Sudoku package by Eugene Kulesha solves the standard 9x9
-version of the puzzle.
+The Games-Sudoku package by Eugene Kulesha (see
+L<http://search.cpan.org/~jset/>) solves the standard 9x9 version
+of the puzzle.
 
-The Games-Sudoku-OO package by Michael Cope also solves the standard
+The Games-Sudoku-OO package by Michael Cope (see
+L<http://search.cpan.org/~cope/>) also solves the standard
 9x9 version of the puzzle, with an option to solve (to the extent
 possible) a single row, column, or square. The implementation may
 be extensable to other topologies than the standard one.
 
-The Games-YASudoku package by Andrew Wyllie also solves the standard
+The Games-YASudoku package by Andrew Wyllie (see
+L<http://search.cpan.org/~wyllie/>) also solves the standard
 9x9 version of the puzzle. In contrast to the other packages, this one
 represents the board as a list of cell/value pairs.
 
@@ -1742,6 +1853,7 @@ and/or modify it under the same terms as Perl itself.
 #  P {cell}[$inx]{possible} = {}   # A list of the possible values of
 #				   # the cell. Each element is false if
 #				   # the value is possible.
+#  P {cells_unassigned}		# Number of empty cells remaining
 #  S {constraints_used} = {}	# The number of times each constraint
 #				# was applied.
 #  T {intersection}{$name} = []	# The indices of the cells in the named

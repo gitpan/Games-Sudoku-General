@@ -553,6 +553,93 @@ test <<eod 'Digit Place - Cihan Altay' 'cited by Ed Pegg, Jr.' $pegg
 2 3 6 5 4 1
 eod
 
+set cube half
+problem <<eod
+. 5 7 .
+. . . 2
+. . 1 .
+8 . . 3
+. . . .
+4 2 . .
+7 . . 8
+. 3 . .
+. 7 . .
+. 5 3 .
+. . . 6
+2 . . .
+eod
+solution
+test <<eod 'Cubic Sudoku (half, or isometric)' 'cited by Ed Pegg, Jr.' $pegg
+3 5 7 4
+1 6 8 2
+2 4 1 6
+8 7 5 3
+5 8 3 1
+4 2 6 7
+7 1 2 8
+6 3 4 5
+6 7 4 2
+1 5 3 8
+4 3 5 6
+2 8 7 1
+eod
+
+set cube full
+set symbols '. 0 1 2 3 4 5 6 7 8 9 A B C D E F'
+problem <<eod
+D 2 C .
+3 8 0 9
+6 . . 1
+. . E .
+. . . 3
+. 4 . .
+. . E .
+1 D . .
+1 . . A
+. . 9 .
+0 . . .
+. . . .
+. 9 . .
+1 . . .
+. F . 6
+A . . .
+. . 4 .
+. 7 2 .
+. . F .
+E . . .
+. 9 . 2
+C A . B
+5 F . E
+7 6 . .
+eod
+solution
+test <<eod 'Cubic Sudoku (full)' http://www.mathrec.org/sudoku/sudokucube.gif
+D 2 C 7
+3 8 0 9
+6 4 A 1
+B 5 E F
+F C 5 3
+A 4 B 6
+9 2 E 8
+1 D 0 7
+1 D B A
+2 C 9 8
+0 3 7 4
+F E 6 5
+2 9 E 4
+1 3 7 0
+D F 5 6
+A C B 8
+9 0 4 C
+8 7 2 D
+A 1 F 6
+E B 5 3
+4 9 3 2
+C A 1 B
+5 F D E
+7 6 8 0
+eod
+
 set sudoku 4
 
 get topology
@@ -636,4 +723,64 @@ c0,r0 c1,r0 c2,r0 c3,r0
 c0,r1 c1,r1 c2,r1 c3,r1
 c0,r2 c1,r2 c2,r2 c3,r2
 c0,r3 c1,r3 c2,r3 c3,r3
+eod
+
+var bumble 'http://www.bumblebeagle.org/dusumoh/'
+set latin 9
+add_set na 54 63 72 73 74 75 76 77 78
+add_set nb 45 46 55 64 65 66 67 68 69
+add_set nc  0  9 18 27 36 37 38 47 56
+add_set nh 39 48 57 58 59 60 61 70 79
+add_set ne 19 28 29 30 31 40 49 50 51
+add_set nf  1 10 11 20 21 22 23 24 33
+add_set nd  2  3 12 13 14 15 16 25 34
+add_set ng  4  5  6  7  8 17 26 35 44
+add_set ni 32 41 42 43 52 53 62 71 80
+problem <<eod
+. . . . . . G . .
+. . . D . . . . .
+. . . . . F . . .
+. . . . E . . . .
+. . C . . . . . .
+. B . . . . . . .
+A . . . . . . . .
+. . . . . . . . I
+. . . . . . . H .
+eod
+solution
+test <<eod 'Arbitrary Nonomino, letters' $bumble
+F D E C I B G A H
+E C G D H A B I F
+D I B E A F H G C
+B G A H E C I F D
+G A C I B H F D E
+I B H A F D C E G
+A H I F D G E C B
+H F D G C E A B I
+C E F B G I D H A
+eod
+
+set corresponding 3
+problem <<eod
+. . . . 5 . . . 4
+5 . 9 . . . . . .
+. . 4 . 9 7 . . 1
+. . . . . 1 . 7 .
+. . . 3 . 4 . . .
+. 1 . 9 . . . . .
+7 . . 8 3 . 9 . .
+. . . . . . 8 . 5
+3 . . . 6 . . . .
+eod
+solution
+test <<eod 'Corresponding-cell sudoku' 'http://www.sudoku.com/forums/viewtopic.php?t=995'
+1 7 8 2 5 3 6 9 4
+5 6 9 1 4 8 3 2 7
+2 3 4 6 9 7 5 8 1
+6 4 3 5 8 1 2 7 9
+9 5 2 3 7 4 1 6 8
+8 1 7 9 2 6 4 5 3
+7 2 1 8 3 5 9 4 6
+4 9 6 7 1 2 8 3 5
+3 8 5 4 6 9 7 1 2
 eod
