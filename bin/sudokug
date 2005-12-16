@@ -11,7 +11,7 @@ use Term::ReadLine;
 use Text::ParseWords;
 use UNIVERSAL qw{can};
 
-our $VERSION = '0.003';
+our $VERSION = '0.004';
 
 my $rdln = Term::ReadLine->new ('Solve Sudoku and other set-allocation puzzles');
 my $OUT = $rdln->OUT || \*STDOUT;
@@ -414,8 +414,12 @@ L</sudoku>. Also called "disjoint groups".
 =item cube (string, write-only)
 
 This pseudo-attribute sets the topology, symbols, and columns for a
-Sudoko puzzle on the faces of a cube. There are two geometries
-supported; which one is actually generated is selected by the argument:
+Sudoko puzzle on the faces of a cube. There are three topologies
+supported; two on the face of a 4 x 4 x 4 cube, plus the Dion cube.
+Which one is actually generated is selected by the argument:
+
+* a number generates a Dion cube, and specifies the size of the small
+square. Specifying 3 generates a 9 x 9 x 9 Dion cube.
 
 * 'full' generates a puzzle on all 6 faces of the cube. The sets are
 the faces of the cube and the "stripes" of cells running around the
@@ -518,6 +522,7 @@ sets to which each cell belongs.
  0.003 T. R. Wyant
    Documented methods and attributes added
    since 0.001.
+ 0.004 T. R. Wyant - Documented new use of cube attribute.
 
 =head1 AUTHOR
 

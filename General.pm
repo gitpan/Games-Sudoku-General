@@ -194,8 +194,18 @@ This kind of puzzle is also called "disjoint groups."
 =item cube (string, write-only)
 
 This "virtual" attribute is a convenience, which causes the object to
-be configured for cubical sudoku. The string takes one of the following
-values:
+be configured for cubical sudoku. The string is either a number, or
+'full', or 'half'.
+
+* a number sets the topology to a Dion cube of the given order.
+That is,
+
+ sudokug> set cube 3
+
+generates a 9 x 9 x 9 Dion cube, with the small squares being 3 x 3.
+The problem is entered in plane, row, and column order, as though you
+were entering the required number of normal Sudoku puzzles
+back-to-back.
 
 * 'full' generates a topology that includes all faces of the cube. The
 sets are the faces of the cube, and the rows, columns, and (for lack
@@ -431,7 +441,7 @@ use warnings;
 
 use base qw{Exporter};
 
-our $VERSION = '0.003';
+our $VERSION = '0.004';
 our @EXPORT_OK = qw{
 	SUDOKU_SUCCESS
 	SUDOKU_NO_SOLUTION
@@ -914,12 +924,36 @@ sub _set_cube {
 my $self = shift;
 my $name = shift;
 my $type = shift;
-$cube{$type} or croak <<eod;
-Error - Cube type '$type' is not defined. Legal values are
-        @{[join ', ', map {"'$_'"} sort keys %cube]}
+if ($type =~ m/\D/) {
+    $cube{$type} or croak <<eod;
+Error - Cube type '$type' is not defined. Legal values are numeric (for
+        Dion cube), or one of @{[join ', ', map {"'$_'"} sort keys %cube]}
 eod
-$self->set (topology => $cube{$type}, columns => 4);
+    $self->set (topology => $cube{$type}, columns => 4);
+    }
+  else {
+    my $size = $type * $type;
+    my $topo = '';
+    for (my $x = 0; $x < $size; $x++) {
+	for (my $y = 0; $y < $size; $y++) {
+	    for (my $z = 0; $z < $size; $z++) {
+		$topo .= join (',',
+			_cube_set_names ($type, x => $x, $y, $z),
+			_cube_set_names ($type, y => $y, $z, $x),
+			_cube_set_names ($type, z => $z, $x, $y)) . ' ';
+		}
+	    }
+	}
+    $self->set (topology => $topo, columns => $size);
+    }
 $self->set (symbols => join ' ', '.', 1 .. $self->{largest_set});
+}
+
+sub _cube_set_names {
+my ($order, $name, $x, $y, $z) = @_;
+my $tplt = sprintf '%s%d%%s%%d', $name, $x;
+map {sprintf $tplt, @$_} [r => $y], [c => $z],
+    [s => floor ($y / $order) * $order + floor ($z / $order)]
 }
 
 sub _set_latin {
@@ -1804,6 +1838,8 @@ provided a treasure trove of 'non-standard' Sudoku puzzles.
    Added 'set corresponding' and 'set max_tuple'.
    Added cubic sudoku (via 'set cube').
    Fixed horrendous inefficiency in backtrack logic.
+ 0.004 T. R. Wyant
+   Added Dion cube (via 'set cube number').
 
 =head1 SEE ALSO
 
