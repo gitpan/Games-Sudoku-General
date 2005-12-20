@@ -559,10 +559,12 @@ problem <<eod
 . . . 2
 . . 1 .
 8 . . 3
+
 . . . .
 4 2 . .
 7 . . 8
 . 3 . .
+
 . 7 . .
 . 5 3 .
 . . . 6
@@ -574,10 +576,12 @@ test <<eod 'Cubic Sudoku (half, or isometric)' 'cited by Ed Pegg, Jr.' $pegg
 1 6 8 2
 2 4 1 6
 8 7 5 3
+
 5 8 3 1
 4 2 6 7
 7 1 2 8
 6 3 4 5
+
 6 7 4 2
 1 5 3 8
 4 3 5 6
@@ -618,22 +622,27 @@ D 2 C 7
 3 8 0 9
 6 4 A 1
 B 5 E F
+
 F C 5 3
 A 4 B 6
 9 2 E 8
 1 D 0 7
+
 1 D B A
 2 C 9 8
 0 3 7 4
 F E 6 5
+
 2 9 E 4
 1 3 7 0
 D F 5 6
 A C B 8
+
 9 0 4 C
 8 7 2 D
 A 1 F 6
 E B 5 3
+
 4 9 3 2
 C A 1 B
 5 F D E

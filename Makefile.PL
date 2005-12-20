@@ -71,6 +71,7 @@ eod
 my $vers = '';
 
 WriteMakefile (
+##	(MM->can ('signature_target') ? (SIGN => 1) : ()),
 	NAME => 'Games::Sudoku::General',
 	VERSION_FROM => 'General.pm',
 	PREREQ_PM => {
@@ -80,8 +81,8 @@ WriteMakefile (
 	'dist' => {COMPRESS => 'gzip', SUFFIX => 'gz'},
 	realclean => {FILES => join ' ', @clean_files},
 	$] >= 5.005 ? (
-		AUTHOR => 'Tom Wyant (wyant@cpan.org)',
-		ABSTRACT => 'Solve Wasabi-like games',
+		AUTHOR => 'Tom Wyant (wyant at cpan dot org)',
+		ABSTRACT => 'Solve Sudoku and related puzzles',
 		BINARY_LOCATION => "$Config{archname}$vers/Games-Sudoku-General.tar.gz",
 		) : (),
 	);

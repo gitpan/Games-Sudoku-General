@@ -11,7 +11,7 @@ use Term::ReadLine;
 use Text::ParseWords;
 use UNIVERSAL qw{can};
 
-our $VERSION = '0.004';
+our $VERSION = '0.005';
 
 my $rdln = Term::ReadLine->new ('Solve Sudoku and other set-allocation puzzles');
 my $OUT = $rdln->OUT || \*STDOUT;
@@ -148,7 +148,7 @@ __END__
 
 =head1 NAME
 
-sudokug - Executable to solve sudoku-like puzzles.
+sudokug - Script to solve sudoku-like puzzles.
 
 =head1 SYNOPSIS
 
@@ -218,7 +218,7 @@ of the parameter. The script will prompt with the string, and anything
 you enter is part of that parameter, until you enter a line consisting
 solely of the given string. More than one "here document" can be
 specified; you will be prompted for them in left-to-right order. There
-is an example of this in the L</SYNOPSIS> section.
+is an example of a "here document" in the L</SYNOPSIS> section.
 
 Below is a brief description of the commands. For the attributes that
 may be set or retrieved, and a more thorough (and possibly more
@@ -251,6 +251,12 @@ This command does not correspond to a Games::Sudoku::General method.
 It causes this script to terminate. Entering end-of-file in response
 to a prompt by this script also works.
 
+=item generate min max constraints
+
+This command attempts to generate a puzzle in the current topology.
+All arguments may be defaulted, but the defaults may not be
+appropriate for all topologies. See 'help lib' for details.
+
 =item get name ...
 
 This command displays the values of the named attributes. You can
@@ -261,7 +267,7 @@ details.
 =item help
 
 This command does not correspond to a Games::Sudoku::General method.
-WIthout an argument, it gets you this documentation. If given with
+Without an argument, it gets you this documentation. If given with
 the argument 'lib', that is, as
 
  sudokug> help lib
@@ -273,7 +279,7 @@ it gets you the POD for Games::Sudoku::General.
 This command instantiates a Games::Sudoku::General object. You get one
 for free when you launch this script; this command is for those cases
 when it's easier to start over with a new object than to reconfigure
-the one you already have.
+the one you already have. Any arguments get passed to the set() method.
 
 =item problem string
 
@@ -399,9 +405,9 @@ the size of the enclosing square.
 
 =item columns (number)
 
-This attribute specifies the number of cells displayed on topology or
-solution output. It has nothing to do with the problem itself, and
-no effect on problem input.
+This attribute specifies the number of cells displayed on a line of
+topology or solution output. It has nothing to do with the problem
+itself, and no effect on problem input.
 
 =item corresponding (number)
 
@@ -447,6 +453,11 @@ with cheesy typed diagrams.
 This attribute displays debugging information. The only supported value
 is 0.
 
+=item generation_limit (number)
+
+This attribute sets the number of times the L<generate|/item_generate>
+command tries to generate a puzzle before it gives up.
+
 =item iteration_limit (number)
 
 This attribute sets the number of times the solution command is allowed
@@ -476,6 +487,12 @@ This is just a convenient place to put an identifying string.
 
 This attribute specifies the delimiter between cell values on output.
 The default is a single space.
+
+=item rows (number)
+
+This attribute specifies the number of lines of topology or solution
+output before a blank line is inserted for readability. It has nothing
+to do with the problem itself, and no effect on problem input.
 
 =item status_text (string, read-only)
 
@@ -523,6 +540,7 @@ sets to which each cell belongs.
    Documented methods and attributes added
    since 0.001.
  0.004 T. R. Wyant - Documented new use of cube attribute.
+ 0.005 T. R. Wyant - Documented new mothods and attributes.
 
 =head1 AUTHOR
 
