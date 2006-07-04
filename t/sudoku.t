@@ -1,143 +1,9 @@
 
-use strict;
-use warnings;
+use t::TestDriver;
 
-use Games::Sudoku::General;
-use Test;
+our $VERSION = '0.001';
 
-my $loc = tell DATA;
-my $method;
-my $su;
-my %variable;
-my $number;
-my @todo;
-my $pass;
-
-new ();
-
-for ($pass = 0; $pass < 2; $pass++) {
-    $number = 0;
-    %variable = ();
-    @todo = ();
-    seek (DATA, $loc, 0);
-    while (<DATA>) {
-	s/^\s+//;
-	next unless $_;
-	next if m/^#/;
-	s/\s+$//;
-	my $outside = 1;
-	my @args = map {
-	    $outside++ % 2 ? (map {
-		m/^<<(.+)/ ? do {
-		    my $t = $1 . "\n"; my $r = '';
-		    while (<DATA>) {last if $_ eq $t; $r .= $_}
-		    $r } :
-		m/^\$(.+)/ ? $variable{$1} || $1 :
-		$_
-		} split ('\s+', $_)) :
-	    $_} split "'", $_;
-	$variable{trace} and
-	    print "#> ", join (' ', map {m/\s/ ? "'$_'" : $_} @args), "\n";
-	my $verb = shift @args;
-	if ($verb =~ m/\W/ || $verb =~ m/^_/) {
-	    warn <<eod;
-Error - Verb '$verb' is illegal.
-eod
-	    }
-	  elsif (__PACKAGE__->can ($verb)) {
-	    __PACKAGE__->$verb (@args);
-	    }
-	  elsif ($su->can ($verb)) {
-	    next unless $pass;
-	    $method = $verb;
-	    $variable{result} = eval {$su->$verb (@args)} || $@ || '';
-	    warn $@ if $@;
-	    }
-	  else {
-	    warn <<eod;
-Error - Verb '$verb' is unknown.
-eod
-	    }
-	}
-
-
-    unless ($pass) {plan tests => $number, todo => \@todo; }
-
-    }
-
-#	echo prints its arguments.
-
-sub echo {
-return unless $pass;
-shift;
-foreach (@_) {
-    chomp;
-    foreach (split '\n', $_) {
-	s/^\.//;
-	print "#         ", ' ' x length ($number), "$_\n" if $_
-	}
-    }
-}
-
-#	fowler translates Glenn Fowler's cell numbers into mine.
-
-sub fowler {
-$variable{result} = $_[1];
-$variable{result} =~
-    s/\[(\d+),(\d+)\]/'[' . (($1 - 1) * 9 + $2 - 1) . ']'/gem;
-}
-
-#	new instantiates a new Games::Sudoku::General object.
-
-sub new {shift; $su = Games::Sudoku::General->new (@_)}
-
-#	test compares the previous result to its first argument. It
-#	also prints some front matter for the test, with the second
-#	argument being the title (defaulting to the name of the
-#	previous method), and subsequent arguments being echoed.
-
-sub test {
-shift;
-$number++;
-return unless $pass;
-my $expect = shift;
-chomp $expect;
-my $title = shift || $method;
-chomp $title;
-print <<eod;
-#
-# Test $number - $title
-eod
-__PACKAGE__->echo (@_) if @_;
-my $result = $variable{result};
-chomp $result;
-if ($result =~ m/\n/ || $expect =~ m/\n/) {
-    foreach ([Expect => $expect], [Got => $result]) {
-	printf "# %9s:\n", $_->[0];
-	foreach (split '\n', $_->[1]) {print "#          $_\n"}
-	}
-    }
-  else {
-    print <<eod;
-#    Expect: $expect
-#       Got: $result
-eod
-    }
-ok ($expect eq $result);
-}
-
-#	todo marks the previous test as a 'todo' item.
-
-sub todo {push @todo, $number}
-
-sub unload {$variable{result} = $su->_unload () if $pass}
-
-#	var defines a pseudo-lexical variable, which can be substituted
-#	into the command by prefixing the variable name with a '$'.
-#	Note that $result is implicitly set by any
-#	Games::Sudoku::General method.
-
-sub var {shift; my $name = shift; $variable{$name} = "@_"}
+t::TestDriver->execute (*DATA);
 
 __END__
 
@@ -164,6 +30,18 @@ var gsftax http://www.research.att.com/~gsf/sudoku/taxonomy.dat
 problem <<eod
 ...4..7894.6...1...8.....5.2.4..5....95.........9.2345.3..7.9.8.67..1...9....8..2
 eod
+unload
+test <<eod 'Unload function'
+. . . 4 . . 7 8 9
+4 . 6 . . . 1 . .
+. 8 . . . . . 5 .
+2 . 4 . . 5 . . .
+. 9 5 . . . . . .
+. . . 9 . 2 3 4 5
+. 3 . . 7 . 9 . 8
+. 6 7 . . 1 . . .
+9 . . . . 8 . . 2
+eod
 solution
 test <<eod 'Constraint Taxonomy 1 (F) - Glenn Fowler' $gsftax
 1 2 3 4 5 6 7 8 9
@@ -178,7 +56,7 @@ test <<eod 'Constraint Taxonomy 1 (F) - Glenn Fowler' $gsftax
 eod
 
 constraints_used
-test F
+test F 'Check that we in fact used only the "F" constraint'
 
 set symbols '. A B C D E F G H I'
 problem <<eod
@@ -216,7 +94,7 @@ test <<eod 'Constraint Taxonomy 2 (FN) - Glenn Fowler' $gsftax
 eod
 
 constraints_used
-test 'F N'
+test 'F N' 'Check that we in fact only used the "F" and "N" constraints'
 
 problem <<eod
 ...4..7894.6...1...8.....5.2.4..5....95......6..9.2.4..3..7...8.67......9....8..2
@@ -235,7 +113,7 @@ test <<eod 'Constraint Taxonomy 3 (FN) - Glenn Fowler' $gsftax
 eod
 
 constraints_used
-test 'F N'
+test 'F N' 'Check that we in fact only used the "F" and "N" constraints'
 
 
 problem <<eod
@@ -255,7 +133,7 @@ test <<eod 'Constraint Taxonomy 4 (FNB) - Glenn Fowler' $gsftax
 eod
 
 constraints_used
-test 'F N B'
+test 'F N B' 'Check that we in fact only used the "F", "N" and "B" constraints'
 
 problem <<eod
 ...4..7894.6...1...8.....5.2.4..5....9..........9.2.4..3..7.9.8.67..1...9....8..2
@@ -274,7 +152,7 @@ test <<eod 'Constraint Taxonomy 5 (FNBT) - Glenn Fowler' $gsftax
 eod
 
 constraints_used
-test 'F N B T'
+test 'F N B T' 'Check that we in fact only used the "F", "N", "B", and "T" constraints'
 
 problem <<eod
 ..345...94567..1......2....2.4.....5.....8....3.....4.3.5...9128..6.1..4....3....
@@ -293,7 +171,7 @@ test <<eod 'Constraint Taxonomy 6 (FNT) - Glenn Fowler' $gsftax
 eod
 
 constraints_used
-test 'F N T'
+test 'F N T' 'Check that we in fact only used the "F", "N" and "T" constraints'
 
 problem <<eod
 . 4 5 . 3 2 1 . .
@@ -511,7 +389,7 @@ test <<eod 'Arbitrary nonomino - Ed Pegg Jr.' $pegg
 7 8 4 5 3 9 6 2 1
 eod
 
-set brick 3,2,6
+set brick 3,2
 get topology
 test <<eod 'Brick topology (3 x 2 bricks in a 6 x 6 square)'
 c0,r0,s0 c1,r0,s0 c2,r0,s0 c3,r0,s1 c4,r0,s1 c5,r0,s1
@@ -770,26 +648,42 @@ C E F B G I D H A
 eod
 
 set corresponding 3
-problem <<eod
-. . . . 5 . . . 4
-5 . 9 . . . . . .
-. . 4 . 9 7 . . 1
-. . . . . 1 . 7 .
-. . . 3 . 4 . . .
-. 1 . 9 . . . . .
-7 . . 8 3 . 9 . .
-. . . . . . 8 . 5
-3 . . . 6 . . . .
-eod
-solution
-test <<eod 'Corresponding-cell sudoku' 'http://www.sudoku.com/forums/viewtopic.php?t=995'
-1 7 8 2 5 3 6 9 4
-5 6 9 1 4 8 3 2 7
-2 3 4 6 9 7 5 8 1
-6 4 3 5 8 1 2 7 9
-9 5 2 3 7 4 1 6 8
-8 1 7 9 2 6 4 5 3
-7 2 1 8 3 5 9 4 6
-4 9 6 7 1 2 8 3 5
-3 8 5 4 6 9 7 1 2
+#
+# problem <<eod
+# . . . . 5 . . . 4
+# 5 . 9 . . . . . .
+# . . 4 . 9 7 . . 1
+# . . . . . 1 . 7 .
+# . . . 3 . 4 . . .
+# . 1 . 9 . . . . .
+# 7 . . 8 3 . 9 . .
+# . . . . . . 8 . 5
+# 3 . . . 6 . . . .
+# eod
+# solution
+# test <<eod 'Corresponding-cell sudoku' 'http://www.sudoku.com/forums/viewtopic.php?t=995'
+# 1 6 7 2 5 8 3 9 4
+# 5 8 9 4 1 3 2 6 7
+# 2 3 4 6 9 7 5 8 1
+# 4 2 3 5 8 1 6 7 9
+# 9 7 6 3 2 4 1 5 8
+# 8 1 5 9 7 6 4 2 3
+# 7 4 2 8 3 5 9 1 6
+# 6 9 1 7 4 2 8 3 5
+# 3 5 8 1 6 9 7 4 2
+# eod
+# I don't really have a book solution for the above problem. So rather
+# than a fake test, I'll just check the topology.
+#
+get topology
+test <<eod 'Corresponding-cell topology' 'David Jelinek of Central Michigan University'
+c0,r0,s0,u0 c1,r0,s0,u1 c2,r0,s0,u2 c3,r0,s1,u0 c4,r0,s1,u1 c5,r0,s1,u2 c6,r0,s2,u0 c7,r0,s2,u1 c8,r0,s2,u2
+c0,r1,s0,u3 c1,r1,s0,u4 c2,r1,s0,u5 c3,r1,s1,u3 c4,r1,s1,u4 c5,r1,s1,u5 c6,r1,s2,u3 c7,r1,s2,u4 c8,r1,s2,u5
+c0,r2,s0,u6 c1,r2,s0,u7 c2,r2,s0,u8 c3,r2,s1,u6 c4,r2,s1,u7 c5,r2,s1,u8 c6,r2,s2,u6 c7,r2,s2,u7 c8,r2,s2,u8
+c0,r3,s3,u0 c1,r3,s3,u1 c2,r3,s3,u2 c3,r3,s4,u0 c4,r3,s4,u1 c5,r3,s4,u2 c6,r3,s5,u0 c7,r3,s5,u1 c8,r3,s5,u2
+c0,r4,s3,u3 c1,r4,s3,u4 c2,r4,s3,u5 c3,r4,s4,u3 c4,r4,s4,u4 c5,r4,s4,u5 c6,r4,s5,u3 c7,r4,s5,u4 c8,r4,s5,u5
+c0,r5,s3,u6 c1,r5,s3,u7 c2,r5,s3,u8 c3,r5,s4,u6 c4,r5,s4,u7 c5,r5,s4,u8 c6,r5,s5,u6 c7,r5,s5,u7 c8,r5,s5,u8
+c0,r6,s6,u0 c1,r6,s6,u1 c2,r6,s6,u2 c3,r6,s7,u0 c4,r6,s7,u1 c5,r6,s7,u2 c6,r6,s8,u0 c7,r6,s8,u1 c8,r6,s8,u2
+c0,r7,s6,u3 c1,r7,s6,u4 c2,r7,s6,u5 c3,r7,s7,u3 c4,r7,s7,u4 c5,r7,s7,u5 c6,r7,s8,u3 c7,r7,s8,u4 c8,r7,s8,u5
+c0,r8,s6,u6 c1,r8,s6,u7 c2,r8,s6,u8 c3,r8,s7,u6 c4,r8,s7,u7 c5,r8,s7,u8 c6,r8,s8,u6 c7,r8,s8,u7 c8,r8,s8,u8
 eod

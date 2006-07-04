@@ -38,7 +38,7 @@ the user has the option of hand-specifying an arbitrary topology.
 
 Even on the standard 9 x 9 Sudoku topology there are variants in which
 unspecified cells are constrained in various ways (odd/even, high/low).
-Such variants are accomodated by defining named sets of allowed
+Such variants are accommodated by defining named sets of allowed
 symbols, and then giving the set name for each unoccupied cell to which
 it applies. See L<allowed_symbols|/item_allowed_symbols> for more
 information and an example.
@@ -79,10 +79,12 @@ Games::Sudoku::General objects have the following attributes, which may
 normally be accessed by the get() method, and changed by the set()
 method.
 
-In parentheses after the name of the attribute is the word "number"
-or "string", giving the data type of the attribute. The parentheses
-may also contain the words "read-only" to denote a read-only attribute
-or "write-only" to denote a write-only attribute.
+In parentheses after the name of the attribute is the word "boolean",
+"number" or "string", giving the data type of the attribute. Booleans
+are interpreted in the Perl sense: undef, 0, and '' are false, and
+anything else is true. The parentheses may also contain the words
+"read-only" to denote a read-only attribute or "write-only" to denote
+a write-only attribute.
 
 In general, the write-only attributes exist as a convenience to the
 user, and provide a shorthand way to set a cluster of attributes at
@@ -136,6 +138,13 @@ problem is defined, they also affect the need for whitespace on
 problem input. See the L<problem()|/item_problem> documentation for
 full details.
 
+=item autocopy (boolean)
+
+If true, this attribute causes the generate() method to implicitly call
+copy() to copy the generated problem to the clipboard.
+
+This attribute is false by default.
+
 =item brick (string, write-only)
 
 This "virtual" attribute is a convenience, which causes the object to
@@ -164,7 +173,14 @@ generates a topology that looks like this
 The overall size of the puzzle must be a multiple of both the
 horizontal and vertical rectangle size.
 
-Setting this modifies the following "real" attributes:
+Beginning with version 0.005_01, the overall size value is optional,
+and defaults to the product of the horizontal and vertical
+dimensions. B<Note> that I am B<strongly> considering eliminating this
+value, since it appears to me that any value other than the default
+results in an impossible puzzle. As of version 0.005_01, specification
+of the third value is deprecated. 
+
+Setting this attribute modifies the following "real" attributes:
 
  columns is set to the size of the big square;
  symbols is set to "." and the numbers "1", "2",
@@ -276,12 +292,12 @@ The solution will be displayed in order by cell number, with line
 breaks controlled by the L<columns|/item_columns> attribute, just
 like any other solution presented by this package.
 
-For all the 'cube' puzzles, the L</columns> attribute is set to 4, and
-the L<symbols|/item_symbols> attribute to the numbers 1 to the size of
-the largest set (16 for the full cube, 8 for the half or isometric
-cube). I have seen full cube puzzles done with hex digits 0 to F; these
-are handled most easily by setting the L<symbols|/item_symbols>
-attribute appropriately:
+For the 'full' and 'half' cube puzzles, the L</columns> attribute is
+set to 4, and the L<symbols|/item_symbols> attribute to the numbers 1
+to the size of the largest set (16 for the full cube, 8 for the half
+or isometric cube). I have seen full cube puzzles done with hex digits
+0 to F; these are handled most easily by setting the
+L<symbols|/item_symbols> attribute appropriately:
 
  $su->set (cube => 'full', symbols => <<eod);
  . 0 1 2 3 4 5 6 7 8 9 A B C D E F
@@ -292,7 +308,7 @@ attribute appropriately:
 This attribute, if not 0, causes debugging information to be displayed.
 Values other than 0 are not supported, in the sense that the author
 makes no commitment what will happen when a non-zero value is set, and
-further reserves the right to change this behaviour without notice of
+further reserves the right to change this behavior without notice of
 any sort, and without documenting the changes.
 
 =item generation_limit (number)
@@ -456,7 +472,7 @@ use warnings;
 
 use base qw{Exporter};
 
-our $VERSION = '0.005';
+our $VERSION = '0.006';
 our @EXPORT_OK = qw{
 	SUDOKU_SUCCESS
 	SUDOKU_NO_SOLUTION
@@ -471,7 +487,6 @@ use Carp;
 use Data::Dumper;
 use List::Util qw{first max reduce};
 use POSIX qw{floor};
-use Scalar::Util qw{dualvar looks_like_number};
 
 use constant SUDOKU_SUCCESS => 0;
 use constant SUDOKU_NO_SOLUTION => 1;
@@ -522,10 +537,14 @@ $self;
 
 =item $su->add_set ($name => $cell ...)
 
+=for comment help syntax-highlighting editor "
+
 This method adds to the current topology a new set with the given name,
 and consisting of the given cells. The set name must not already
 exist, but the cells must already exist. In other words, you can't
 modify an existing set with this method, nor can you add new cells.
+
+=for comment help syntax-highlighting editor "
 
 =cut
 
@@ -578,6 +597,76 @@ return unless $self->{constraints_used} && defined wantarray;
 return %{$self->{constraints_used}} if wantarray;
 my $rslt = join ' ', grep {$self->{constraints_used}{$_}} qw{F N B T X Y W ?};
 $rslt;
+}
+
+
+=item $su->copy ()
+
+This method copies the current problem to the clipboard. If solution()
+has been called, the current solution goes on the clipboard.
+
+See L<CLIPBOARD SUPPORT> for what is needed for this to work.
+
+=cut
+
+{	# Local symbol block.
+    my $copier;
+    sub copy {
+    my $self = shift;
+    $copier ||= $^O eq 'MSWin32' ? _copier_win32 () || croak <<eod :
+Error - Copy to clipboard unavailable. Can not load Win32::Clipboard.
+eod
+	$^O eq 'cygwin' ? _copier_win32 () || _copier_xclip () || croak <<eod :
+Error - Copy to clipboard unavailable. Can not load Win32::Clipboard,
+        and xclip has not been installed. For xclip, see
+	http://freshmeat.net/projects/xclip
+eod
+	$^O eq 'darwin' ? _copier_pbcopy () || _copier_xclip () || croak <<eod :
+Error - Copy to clipboard unavailable. Can not find the pbcopy program,
+        which is supposed to come with Mac OS X. Can not find xclip
+	either. For xclip, see http://freshmeat.net/projects/xclip.
+eod
+	$^O eq 'MacOS' ? croak <<eod :
+Error - Copy to clipboard unavailable under Mac OS 9 or below.
+eod
+	_copier_xclip () || croak <<eod;
+Error - Copy to clipboard unavailable. The xclip program has not been
+        installed. See http://freshmeat.net/projects/xclip for a copy.
+eod
+    $copier->($self->_unload ());
+    }
+}
+
+sub _copier_external {
+my ($code, $probe) = @_;
+no warnings qw{exec};
+`$probe`;
+use warnings qw{exec};
+$? ? undef : sub {
+    my $hdl;
+    open ($hdl, "|$code") or croak <<eod;
+Error - failed to open output handle to $code.
+        $!
+eod
+    print $hdl @_;
+    '';
+    }
+}
+
+sub _copier_pbcopy {
+_copier_external (pbcopy => 'pbcopy -help 2>&1');
+}
+
+sub _copier_xclip {
+_copier_external (xclip => 'xclip -o');
+}
+
+sub _copier_win32 {
+eval "use Win32::Clipboard";
+$@ ? undef : sub {
+    (my $s = join '', @_) =~ s/\n/\r\n/mg;
+    Win32::Clipboard->new ()->Set ($s);
+    }
 }
 
 =item $problem = $su->generate ($min, $max, $const);
@@ -697,6 +786,7 @@ eod
     $self->_constraint_remove ($min, $max, $const);
     my $prob = $self->_unload ('', SUDOKU_SUCCESS);
     $self->problem ($prob);
+    $self->copy ($prob) if $self->{autocopy};
     return $prob;
     }
 return;
@@ -787,6 +877,78 @@ $rslt;
 }
 
 sub _get_value {$_[0]->{$_[1]}}
+
+
+=item $su->paste ()
+
+This method pastes a problem from the clipboard.
+
+See L<CLIPBOARD SUPPORT> for what is needed for this to work.
+
+=cut
+
+{	#	Begin local symbol block
+
+    my $paster;
+    sub paste {
+    my $self = shift;
+    $paster ||=  $^O eq 'MSWin32' ? _paster_win32 () || croak <<eod :
+Error - Paste from clipboard unavailable. Can not load Win32::Clipboard.
+eod
+	$^O eq 'cygwin' ? _paster_win32 () || _paster_xclip () || croak <<eod :
+Error - Paste from clipboard unavailable. Can not load Win32::Clipboard,
+        and xclip has not been installed. For xclip, see
+	http://freshmeat.net/projects/xclip
+eod
+	$^O eq 'darwin' ? _paster_pbpaste () || _paster_xclip () || croak <<eod :
+Error - Paste from clipboard unavailable. Can not find the pbpaste
+        program, which is supposed to come with Mac OS X. Can not find
+	xclip either. For xclip, see http://freshmeat.net/projects/xclip.
+eod
+	$^O eq 'MacOS' ? croak <<eod :
+Error - Paste from clipboard unavailable under Mac OS 9 or below.
+eod
+	_paster_xclip () || croak <<eod;
+Error - Paste from clipboard unavailable. The xclip program has not been
+        installed. See http://freshmeat.net/projects/xclip for a copy.
+eod
+    $self->problem ($paster->());
+    $self->_unload ();
+    }
+
+
+}	#	End local symbol block
+
+sub _paster_external {
+my ($code, $probe) = @_;
+no warnings qw{exec};
+`$probe`;
+use warnings qw{exec};
+$? ? undef : sub {
+    my $hdl;
+    open ($hdl, "$code|") or croak <<eod;
+Error - failed to open input handle from $code.
+        $!
+eod
+    local $/ = undef;
+    <$hdl>;
+    }
+}
+
+sub _paster_pbpaste {
+_paster_external (pbpaste => 'pbpaste -help 2>&1');
+}
+
+sub _paster_xclip {
+_copier_external ('xclip -o' => 'xclip -o');
+}
+
+sub _paster_win32 {
+eval "use Win32::Clipboard";
+$@ ? undef : sub {
+    Win32::Clipboard->new ()->Get ();
+    }
+}
 
 
 =item $su->problem ($string);
@@ -906,6 +1068,7 @@ $self;
 
 my %mutator = (
     allowed_symbols => \&_set_allowed_symbols,
+    autocopy => \&_set_value,
     brick => \&_set_brick,
     columns => \&_set_number,
     debug => \&_set_number,
@@ -997,6 +1160,7 @@ sub _set_brick {
 my $self = shift;
 my $name = shift;
 my ($horiz, $vert, $size) = ref $_[0] ? @{$_[0]} : split ',', $_[0];
+$size ||= $horiz * $vert;
 $size % $horiz || $size % $vert and croak <<eod;
 Error - The puzzle size $size must be a multiple of both the horizontal
         brick size $horiz and the vertical brick size $vert.
@@ -1021,10 +1185,14 @@ my $self = shift;
 my $name = shift;
 my $order = shift;
 my $size = $order * $order;
-my $size_minus_1 = $size - 1;
 $self->set (sudoku => $order);
+my $order_minus_1 = $order - 1;
+my $offset = $size * $order;
 for (my $inx = 0; $inx < $size; $inx++) {
-    $self->add_set ("u$inx", map {$_ * $size + $inx} 0 .. $size_minus_1);
+    my $base = floor ($inx / $order) * $size + $inx % $order;
+    $self->add_set ("u$inx", map {
+	my $g = $_ * $offset + $base;
+	(map {$_ * $order + $g} 0 .. $order_minus_1)} 0 .. $order_minus_1);
     }
 }
 
@@ -1129,7 +1297,7 @@ sub _set_number {
 my $self = shift;
 my $name = shift;
 my $value = shift;
-looks_like_number ($value) or croak <<eod;
+_looks_like_number ($value) or croak <<eod;
 Error - Attribute $name must be numeric.
 eod
 $self->{$name} = $value;
@@ -1139,7 +1307,7 @@ sub _set_status_value {
 my $self = shift;
 my $name = shift;
 my $value = shift;
-looks_like_number ($value) or croak <<eod;
+_looks_like_number ($value) or croak <<eod;
 Error - Attribute $name must be numeric.
 eod
 $value < 0 || $value >= @status_values and croak <<eod;
@@ -1262,6 +1430,8 @@ $self->_constrain ();
 
 =item $string = $su->steps ();
 
+=for comment help syntax-highlighting editor "
+
 This method returns the steps taken to solve the problem. If no
 solution was found, it returns the steps taken to determine this. If
 called in list context, you get an actual copy of the list. The first
@@ -1298,6 +1468,8 @@ The third value is the value assigned to the cell. If returned in
 list context, it is the number assigned to the cell's symbol. If
 in scalar context, it is the symbol itself.
 
+=for comment help syntax-highlighting editor "
+
 =cut
 
 sub steps {
@@ -1308,6 +1480,18 @@ wantarray ? (@{$self->{backtrack_stack}}) :
     undef;
 }
 
+=item $string = $su->unload ();
+
+This method returns either the current puzzle or the current solution,
+depending on whether the solution() method has been called since the
+puzzle was loaded.
+
+=cut
+
+sub unload {
+my $self = shift;
+$self->_unload ()
+}
 
 ########################################################################
 
@@ -1884,7 +2068,18 @@ foreach (@_) {
 join '', @steps;
 }
 
-#	_get_* subroutines are found right after the get() method.
+#	_looks_like_number is cribbed heavily from
+#	Scalar::Util::looks_like_number by Graham Barr. This version
+#	only accepts integers, but it is really here because
+#	ActivePerl's Scalar::Util is to ancient to export
+#	looks_like_number.
+
+sub _looks_like_number {
+local $_ = shift;
+return 0 if !defined ($_) or ref ($_);
+return 1 if m/^[+-]?\d+$/;
+return 0;
+}
 
 
 #	_set_* subroutines are found right after the set() method.
@@ -1986,6 +2181,41 @@ __END__
 The distribution for this module also contains the script 'sudokug',
 which is a command-driven interface to this module.
 
+=head1 CLIPBOARD SUPPORT
+
+Clipboard support is highly OS-specific. Here is the story by OS - or,
+really, by the contents of $^O:
+
+=head2 cygwin
+
+Under cygwin, we first try to load the Win32::Clipboard module. If this
+succeeds, we use it. If not, we try to use the xclip program, available
+from L<http://freshmeat.net/project/xclip>.
+
+=head2 darwin
+
+Under Darwin, also known as Mac OS X, we use the pbcopy programs to
+copy text to the clipboard, and pbpaste to retrieve text from the
+clipboard. These programs are supposed to come with Mac OS X. If pbcopy
+or pbpaste (depending on what we are trying to do) is not found, we try
+xclip, under the assumption that you are running Darwin without the Mac
+OS X overlay. The xclip program is available from
+L<http://freshmeat.net/project/xclip>.
+
+=head2 MacOS
+
+Under MacOS (meaning OS 9 or below) we currently have no way to put
+text onto the clipboard.
+
+=head2 MSWin32
+
+Under Windows, we use Win32::Clipboard if available.
+
+=head2 Anything else
+
+Under any other operating system, we try to use the xclip program,
+available from L<http://freshmeat.net/project/xclip>.
+
 =head1 BUGS
 
 The X, Y, and W constraints (to use Glenn Fowler's terminology) are
@@ -1997,7 +2227,7 @@ mail to the author.
 
 =head1 ACKNOWLEDGMENTS
 
-The authow would like to acknowledge the following, without whom this
+The author would like to acknowledge the following, without whom this
 module would not exist:
 
 Glenn Fowler of AT&T, whose L<http://www.research.att.com/~gsf/sudoku/>
@@ -2040,18 +2270,39 @@ provided a treasure trove of 'non-standard' Sudoku puzzles.
        attribute.
    Added rows attribute. This changes the default
        output for 'multi-faced' puzzles.
+ 0.006 T. R. Wyant
+   Fixed problem with 'set corresponding'. Thanks
+       to David Jelinek of Central Michigan University
+       for diagnosing the problem and finding a
+       solution.
+   Corrected spelling.
+   Eliminated Scalar::Util::looks_like_number, since
+       apparently ActivePerl does not have it.
+   Add copy() method and autocopy attribute, for getting
+       generated puzzles onto the clipboard.
+   Add paste() method, for loading puzzles from the
+       clipboard.
+   Add unload() method.
 
 =head1 SEE ALSO
 
 The Games-Sudoku package by Eugene Kulesha (see
-L<http://search.cpan.org/~jset/>) solves the standard 9x9 version
-of the puzzle.
+L<http://search.cpan.org/dist/Games-Sudoku/>) solves the standard 9x9
+version of the puzzle.
+
+The Games-Sudoku-Component package by Kenichi Ishigaki (see
+L<http://search.cpan.org/dist/Games-Sudoku-Component/>) both
+generates and solves the standard 9x9 version of the puzzle.
+
+The Games-Sudoku-Lite package by Bob O'Neill (see
+L<http://search.cpan.org/dist/Games-Sudoku-Lite/>) solves the
+standard 9x9 version of the puzzle.
 
 The Games-Sudoku-OO package by Michael Cope (see
 L<http://search.cpan.org/~cope/>) also solves the standard
 9x9 version of the puzzle, with an option to solve (to the extent
 possible) a single row, column, or square. The implementation may
-be extensable to other topologies than the standard one.
+be extensible to other topologies than the standard one.
 
 The Games-YASudoku package by Andrew Wyllie (see
 L<http://search.cpan.org/~wyllie/>) also solves the standard
@@ -2064,7 +2315,7 @@ Thomas R. Wyant, III (F<wyant at cpan dot org>)
 
 =head1 COPYRIGHT
 
-Copyright 2005 by Thomas R. Wyant, III
+Copyright 2005, 2006 by Thomas R. Wyant, III
 (F<wyant at cpan dot org>). All rights reserved.
 
 This module is free software; you can use it, redistribute it

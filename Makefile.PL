@@ -3,6 +3,8 @@ use ExtUtils::MakeMaker qw{WriteMakefile prompt};
 use FileHandle;
 use Getopt::Std;
 
+our $VERSION = '0.002';
+
 my %opt;
 getopts ('n', \%opt) or die <<eod;
 The only legal option is
@@ -20,7 +22,7 @@ executable:
   sudokug -- an interactive interface to Games::Sudoku::General.
 
 Unless you are running MSWin32 or VMS (which are special-cased),
-I will assume you're running some version of U*ix, and behave
+I will assume you are running some version of U*ix, and behave
 accordingly.
 
 If you do not want this executable installed, rerun this script
