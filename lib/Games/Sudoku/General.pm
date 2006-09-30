@@ -51,7 +51,7 @@ is applied to, and what symbol the cell was constrained to.
 
 Test script t/sudoku.t demonstrates these features. ActivePerl users
 will have to download the kit from L<http://www.cpan.org/>  or
-L<http://search.cpan.org/~wyant/> to get this
+L<http://search.cpan.org/dist/Games-Sudoku-General/> to get this
 file.
 
 =head2 Exported symbols
@@ -444,7 +444,7 @@ c3 for the columns, and d1 and d2 for the diagonals:
 
  r1,c1,d1 r1,c2       r1,c3,d2
  r2,c1    r2,c2,d1,d2 r2,c3
- r3,c1,d1 r3,c2       r3,c3,d2
+ r3,c1,d2 r3,c2       r3,c3,d1
 
 The parser treats line breaks as whitespace. That is to say, the
 above definition would be the same if it were all on one line.
@@ -472,7 +472,7 @@ use warnings;
 
 use base qw{Exporter};
 
-our $VERSION = '0.006';
+our $VERSION = '0.007';
 our @EXPORT_OK = qw{
 	SUDOKU_SUCCESS
 	SUDOKU_NO_SOLUTION
@@ -2283,6 +2283,11 @@ provided a treasure trove of 'non-standard' Sudoku puzzles.
    Add paste() method, for loading puzzles from the
        clipboard.
    Add unload() method.
+ 0.007 T. R. Wyant
+   Corrected example in topology attribute documentation,
+     and other documentation tweaks.
+   Moved General.pm to lib/Games/Sudoku.
+   Added Build.PL
 
 =head1 SEE ALSO
 
@@ -2295,17 +2300,22 @@ L<http://search.cpan.org/dist/Games-Sudoku-Component/>) both
 generates and solves the standard 9x9 version of the puzzle.
 
 The Games-Sudoku-Lite package by Bob O'Neill (see
-L<http://search.cpan.org/dist/Games-Sudoku-Lite/>) solves the
-standard 9x9 version of the puzzle.
+L<http://search.cpan.org/dist/Games-Sudoku-Lite/>) solves the standard
+9x9 version of the puzzle.
 
 The Games-Sudoku-OO package by Michael Cope (see
-L<http://search.cpan.org/~cope/>) also solves the standard
-9x9 version of the puzzle, with an option to solve (to the extent
-possible) a single row, column, or square. The implementation may
+L<http://search.cpan.org/dist/Games-Sudoku-OO/>) also solves the
+standard 9x9 version of the puzzle, with an option to solve (to the
+extent possible) a single row, column, or square. The implementation may
 be extensible to other topologies than the standard one.
 
+The Games-Sudoku-SudokuTk package by Christian Guine (see
+L<http://search.cpan.org/dist/Games-Sudoku-SudokuTk/> claims to
+implement a Tk-based Sudoku solver, but as of version 0.05 the
+kit seems to be incomplete.
+
 The Games-YASudoku package by Andrew Wyllie (see
-L<http://search.cpan.org/~wyllie/>) also solves the standard
+L<http://search.cpan.org/dist/Games-YASudoku/>) also solves the standard
 9x9 version of the puzzle. In contrast to the other packages, this one
 represents the board as a list of cell/value pairs.
 

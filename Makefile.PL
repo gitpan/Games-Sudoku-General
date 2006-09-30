@@ -75,9 +75,10 @@ my $vers = '';
 WriteMakefile (
 ##	(MM->can ('signature_target') ? (SIGN => 1) : ()),
 	NAME => 'Games::Sudoku::General',
-	VERSION_FROM => 'General.pm',
+	VERSION_FROM => 'lib/Games/Sudoku/General.pm',
 	PREREQ_PM => {
 			},
+	PL_FILES => {},	# Prevent old MakeMaker from running Build.PL
 	EXE_FILES => \@exe_files,
 #	'linkext' => {LINKTYPE => ''},
 	'dist' => {COMPRESS => 'gzip', SUFFIX => 'gz'},

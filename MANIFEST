@@ -1,6 +1,10 @@
 bin/sudokug
 Changes
-General.pm
+eg/README
+eg/simple
+eg/solver
+lib/Games/Sudoku/General.pm
+Build.PL
 Makefile.PL
 MANIFEST
 README
@@ -12,4 +16,4 @@ t/pod.t
 t/pod_coverage.t
 t/sudoku.t
 t/TestDriver.pm
-META.yml                                 Module meta-data (added by MakeMaker)
+META.yml
