@@ -27,7 +27,7 @@ where the only valid option at the moment is
 
 eod
 
-our $VERSION = '0.006';
+our $VERSION = '0.007';
 
 my $rdln = Term::ReadLine->new ('Solve Sudoku and other set-allocation puzzles');
 my $OUT = $rdln->OUT || \*STDOUT;
@@ -39,7 +39,7 @@ Perl $Config{version} under $Config{osname}
 
 Solve Sudoku and other set-allocation puzzles.
 
-Copyright 2005, 2006 Thomas R. Wyant, III. All rights reserved.
+Copyright 2005, 2006, 2008 by Thomas R. Wyant, III. All rights reserved.
 
 Enter 'help' for help, and terms of use.
 
@@ -51,6 +51,10 @@ my %synonym = (
     '.' => 'source',
     show => 'get',
     );
+
+my %parm = (	# Settable parameters not attributes of the object.
+    webcmd => undef,	# Command to spawn for web-based help.
+);
 
 while (1) {
     defined ($_ = _acquire_line ()) or do {
@@ -99,19 +103,42 @@ print "Dump of the current Games::Sudoku::General object:\n", Dumper ($su);
 }
 
 sub get {
+
+=begin comment
+
 my @rslt = $su->get (@_);
 for (my $inx = 0; $inx < @_; $inx++) {
     print $rslt[$inx] =~ m/\n/s ?
 	"$_[$inx]:\n$rslt[$inx]\n" :
 	"$_[$inx]: $rslt[$inx]\n\n";
     }
+
+=end comment
+
+=cut
+
+    foreach my $name (@_) {
+	local $_  = exists $parm{$name} ? $parm{$name} : $su->get($name);
+	if (!defined $_) {
+	    print "$name:\n\n";
+	} elsif (m/\n/s) {
+	    print "$name:\n$_\n";
+	} else {
+	    print "$name: $_\n\n";
+	}
+    }
+
 }
 
 sub help {
-my $os_specific = "_help_$^O";
-__PACKAGE__->can ($os_specific) ? __PACKAGE__->$os_specific :
-pod2usage (-verbose => 2, -exitval => 'NOEXIT',
-    $_[0] && $_[0] eq 'lib' ? (-input => $INC{'Games/Sudoku/General.pm'}) : ());
+    if (my $cmd = $parm{webcmd}) {
+	system {$cmd} $cmd, 'http://search.cpan.org/dist/Games-Sudoku-General/';
+    } else {
+    my $os_specific = "_help_$^O";
+    __PACKAGE__->can ($os_specific) ? __PACKAGE__->$os_specific :
+    pod2usage (-verbose => 2, -exitval => 'NOEXIT',
+	$_[0] && $_[0] eq 'lib' ? (-input => $INC{'Games/Sudoku/General.pm'}) : ());
+    }
 }
 
 sub _help_MacOS {
@@ -125,6 +152,17 @@ http://search.cpan.org/~wyant/Games-Sudoku-General-@{[
     Games::Sudoku::General->VERSION]}/bin/sudokug
 
 eod
+}
+
+sub set {
+    while (@_) {
+	my $name = shift;
+	if (exists $parm{$name}) {
+	    $parm{$name} = shift;
+	} else {
+	    $su->set ($name, shift);
+	}
+    }
 }
 
 sub solution {
@@ -144,7 +182,7 @@ unshift @handles, $fh;
 
 sub _acquire_line {
 my $prompt = shift || 'sudokug> ';
-my $rslt = @handles ? <$handles[0]> : -t STDIN ? $rdln->readline ($prompt) : <STDIN>;
+my $rslt = @handles ? $handles[0]->getline() : -t STDIN ? $rdln->readline ($prompt) : <STDIN>;
 defined $rslt and chomp $rslt;
 $rslt;
 }
@@ -282,6 +320,11 @@ Copy the current puzzle or solution to the clipboard. See the CLIPBOARD
 SUPPORT section of the L<Games::Sudoku::General> documentation for what
 you need to make this work.
 
+=item drop_set
+
+This command drops a set from the existing topology. The argument is the
+name of the new set.
+
 =item exit
 
 This command does not correspond to a Games::Sudoku::General method.
@@ -342,6 +385,12 @@ This command sets each named attribute to its given value. You can
 specify more than one name/value pair. See L</Attributes> below
 for a brief discussion of each, and L<Games::Sudoku::General> for more
 details.
+
+In addition to the attributes of the L<Games::Sudoku::General> object
+itself, the following pseudo-attributes are supported, and documented
+below:
+
+* webcmd - the name of the command to spawn to bring up a web browser.
 
 =item show name ...
 
@@ -545,6 +594,23 @@ This is just a convenient place to put an identifying string.
 This attribute specifies the delimiter between cell values on output.
 The default is a single space.
 
+=item quincunx (string, write-only)
+
+This pseudo-attribute sets the topology, symbols, and columns for a
+quincunx puzzle, which is five 'normal' sudoku puzzles joined at the
+corners, such as 'Samurai Sudoku' (L<http://www.samurai-sudoku.com/>).
+
+The argument is a string of one or two integers, separated by a comma
+if two are specified.
+
+The first integer is the 'order' of the puzzle, in the same sense as for
+the 'sudoku' pseudo-attribute, with 'Samurai Sudoku' being order 3.
+
+The second integer specifies the gap between arms of the quincunx in
+terms of multiples of 'order' squares. This must be the same parity (odd
+or even) as the order, less than the order, and defaults to the smallest
+possible value (1 for 'Samurai Sudoku').
+
 =item rows (number)
 
 This attribute specifies the number of lines of topology or solution
@@ -575,7 +641,7 @@ use
 This pseudo-attribute is similar to the 'sudoku' attribute, but
 the main diagonals are included.
 
-=item symbols 'string'
+=item symbols (string)
 
 This attribute sets the symbols that are to be placed in the cells
 of the puzzle. The individual symbols must be whitespace-delimited,
@@ -586,6 +652,18 @@ empty cell.
 
 This attribute sets the current topology in terms of a list of the
 sets to which each cell belongs.
+
+=item webcmd (string)
+
+This setting does not correspond to any attribute of the underlying
+L<Games::Sudoku::General> object. It is the name of the command to be
+used to launch a web browser. If this is set to a value which is true
+in the Perl sense, it will be used by the help command to launch a web
+browser and open L<http://search.cpan.org/dist/Games-Sudoku-General/>.
+
+Mac OS X users will find 'open' a useful value; Windows users will find
+'start' useful. All others should probably use the name of your
+preferred browser.
 
 =back
 
@@ -602,7 +680,11 @@ sets to which each cell belongs.
    Corrected spelling.
    Allowed input to be redirected or piped in.
    Added -filter option.
-   Document new methods and attribites
+   Document new methods and attributes.
+ 0.007 T. R. Wyant
+   Added the 'webcmd' pseudo-attribute.
+   Small documentation tweaks.
+   Fix the 'source' command.
 
 =head1 AUTHOR
 
@@ -610,7 +692,7 @@ Thomas R. Wyant, III (F<wyant at cpan dot org>)
 
 =head1 COPYRIGHT
 
-Copyright 2005, 2006 by Thomas R. Wyant, III
+Copyright 2005, 2006, 2008 by Thomas R. Wyant, III
 (F<wyant at cpan dot org>). All rights reserved.
 
 This module is free software; you can use it, redistribute it

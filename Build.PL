@@ -55,7 +55,7 @@ if ($opt{n}) {
   else {
     foreach (@possible_exes) {
 	push @exe_files, $_
-##	    if prompt ("Do you want to install $_?", 'n') =~ m/^y/i
+	if $bldr->prompt ("Do you want to install $_?", 'n') =~ m/^y/i
 	    ;
 	}
     }

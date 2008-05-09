@@ -362,21 +362,127 @@ and quads only.
 
 This attribute is for information, and is not used by the class.
 
+=item null (string, write-only)
+
+This "virtual" attribute is a convenience, which causes the object to
+be configured with the given number of cells, but no topology. The
+topology must be added later using the add_set method once for each
+set of cells to be created.
+The value must be either a comma-separated list of one to three numbers
+(e.g. '81,9,9') or a reference to a list containing one to three
+numbers (e.g. [81, 9, 9]). The first (and only required) number gives the
+number of cells. The second, if supplied, sets the 'columns' attribute,
+and the third, if supplied, sets the 'rows' attribute.
+
+value set must be either a comma-separated list of three numbers (e.g.
+'3,2,6') or a reference to a list containing three numbers (e.g. [3, 2,
+6]). Either way, the numbers represent the horizontal dimension of the
+rectangle (in columns), the vertical dimension of the rectangle (in
+rows), and the overall size of the puzzle square. For example,
+
+ $su->set (null => [36, 6]);
+ $su->add_set (r0 => 0, 1, 2, 3, 4, 5);
+ $su->add_set (r1 => 6, 7, 8, 9, 10, 11);
+ ...
+ $su->add_set (c0 => 0, 6, 12, 18, 24, 30);
+ $su->add_set (c1 => 1, 7, 13, 19, 25, 31);
+ ...
+ $su->add_set (s0 => 0, 1, 2, 6, 7, 8);
+ $su->add_set (s1 => 3, 4, 5, 9, 10, 11);
+ ...
+
+Generates the topology equivalent to
+
+ $su->set (brick => [3, 2, 6])
+
 =item output_delimiter (string)
 
 This attribute specifies the delimiter to be used between cell values
 on output. The default is a single space.
 
-=item status_text (text, read-only)
+=item quincunx (text, write-only)
 
-This attribute is a short piece of text corresponding to the
-status_value.
+This "virtual" attribute is a convenience, which causes the object to be
+configured as a quincunx (a. k. a. 'Samurai Sudoku' at
+L<http://www.samurai-sudoku.com/>). The value must be
+either a comma-separated list of one to two numbers (e.g. '3,1') or a
+reference to a list of one to two numbers (e.g. [3, 1]). In either case,
+the numbers are the order of the quincunx (3 corresponding to the usual
+'Samurai Sudoku' configuration), and the gap between the arms of the
+quincunx, in small squares. The gap must be strictly less than the
+order, and the same parity (odd or even) as the order. If the gap is not
+specified, it defaults to the smallest possible.
+
+To be specific,
+
+ $su->set(quincunx => 3)
+
+is equivalent to
+
+ $su->set(quincunx => [3, 1])
+
+and both specify the 'Samurai Sudoku' configuration.
+
+The actual topology is set up as a square of (2 * order + gap) * order
+cells on a side, with the cells in the gap being unused. The sets used
+are the same as for sudoku of the same order, but with 'g0' through 'g4'
+prepended to their names, with g0 being the top left sudoku grid, g1 the
+top right, g2 the middle, g3 the bottom left, and g4 the bottom right.
+
+In the case of the 's' sets, this would result in duplicate sets being
+generated in the overlap area, so the 's' set from the higher-numbered
+grid is suppressed. For example, in the 'Samurai Sudoku' configuration,
+sets g0s8, g1s6, g2s6, and g2s8 contain exactly the same cells as g2s0,
+g2s2, g3s2, and g4s0 respectively, so the latter are suppressed, and
+only the former appear in the topology.
+
+Problems are specified left-to-right by rows. The cells in the gaps are
+unused, and are not specified. For example, the May 2, 2008 'Samurai
+Sudoku' problem could be specified as
+
+ . . .  . . 1  . . .         . . .  4 . .  . . .
+ . . .  . 3 .  6 . .         . . 7  . 2 .  . . .
+ . . .  7 . .  . 5 .         . 4 .  . . 5  . . .
+
+ . . 6  9 . .  . . 7         6 . .  . . 9  1 . .
+ . 5 .  . 2 .  . 4 .         . 2 .  . 5 .  . 9 .
+ 4 . .  . . 5  2 . .         . . 8  1 . .  . . 7
+
+ . 2 .  . . 4  . . .  . 8 .  . . .  3 . .  . 2 .
+ . . 5  . 6 .  . . .  4 . 5  . . .  . 8 .  4 . .
+ . . .  1 . .  . . .  . 7 .  . . .  . . 7  . . .
+
+               . 4 .  . 6 .  . 2 .
+               6 . 7  8 . 9  4 . 1
+               . 1 .  . 4 .  . 3 .
+
+ . . .  7 . .  . . .  . 9 .  . . .  . . 6  . . .
+ . . 8  . 2 .  . . .  2 . 8  . . .  . 8 .  5 . .
+ . 4 .  . . 3  . . .  . 5 .  . . .  3 . .  . 2 .
+
+ 2 . .  . . 7  8 . .         . . 4  1 . .  . . 6
+ . 3 .  . 5 .  . 4 .         . 3 .  . 2 .  . 4 .
+ . . 4  8 . .  . . 7         2 . .  . . 3  1 . .
+
+ . . .  9 . .  . 1 .         . 5 .  . . 8  . . .
+ . . .  . 6 .  9 . .         . . 7  . 4 .  . . .
+ . . .  . . 4  . . .         . . .  2 . .  . . .
+
+
+Setting this attribute causes the rows and columns attributes to be set
+to (2 * order + gap) * order. The symbols attribute is set to '.' and
+the numbers 1, 2, ... up to order * order.
 
 =item rows (number)
 
 This attribute defines the number of lines of output to present before
 inserting a blank line (for readability) when formatting the topology
 attribute, or the solution to a puzzle.
+
+=item status_text (text, read-only)
+
+This attribute is a short piece of text corresponding to the
+status_value.
 
 =item status_value (number)
 
@@ -453,6 +559,11 @@ You do not need to define the sets themselves anywhere. The
 package defines each set as it encounters it in the topology
 definition.
 
+For certain topologies (e.g. the London Times Quincunx) it may be
+convenient to include in the definition cells that are not part of the
+puzzle. Such unused cells are defined by specifying just a comma,
+without any set names.
+
 Setting the topology invalidates any currently-set-up problem.
 
 =back
@@ -472,7 +583,7 @@ use warnings;
 
 use base qw{Exporter};
 
-our $VERSION = '0.007';
+our $VERSION = '0.008';
 our @EXPORT_OK = qw{
 	SUDOKU_SUCCESS
 	SUDOKU_NO_SOLUTION
@@ -537,14 +648,10 @@ $self;
 
 =item $su->add_set ($name => $cell ...)
 
-=for comment help syntax-highlighting editor "
-
 This method adds to the current topology a new set with the given name,
 and consisting of the given cells. The set name must not already
 exist, but the cells must already exist. In other words, you can't
 modify an existing set with this method, nor can you add new cells.
-
-=for comment help syntax-highlighting editor "
 
 =cut
 
@@ -559,6 +666,7 @@ Error - Cell $inx does not exist.
 eod
 foreach my $inx (@_) {
     my $cell = $self->{cell}[$inx];
+    @{$cell->{membership}} or --$self->{cells_unused};
     foreach my $other (@{$cell->{membership}}) {
 	my $int = join ',', sort $other, $name;
 	$self->{intersection}{$int} ||= [];
@@ -669,6 +777,46 @@ $@ ? undef : sub {
     }
 }
 
+
+=item $su->drop_set ($name)
+
+This method removes from the current topology the set with the given
+name. The set must exist, or an exception is raised.
+
+=cut
+
+sub drop_set {
+    my ($self, $name) = @_;
+    $self->{set}{$name} or croak <<eod;
+Error - Set '$name' not defined.
+eod
+    foreach my $inx (@{$self->{set}{$name}{membership}}) {
+	my $cell = $self->{cell}[$inx];
+	my @mbr;
+	foreach my $other (@{$cell->{membership}}) {
+	    if ($other ne $name) {
+		push @mbr, $other;
+		my $int = join ',', sort $other, $name;
+		delete $self->{intersection}{$int};
+	    }
+	}
+	if (@mbr) {
+	    @{$cell->{membership}} = sort @mbr;
+	} else {
+	    @{$cell->{membership}} = ();
+	    $self->{cells_unused}++;
+	}
+    }
+    delete $self->{set}{$name};
+    $self->{largest_set} = 0;
+    foreach (keys %{$self->{set}}) {
+	$self->{largest_set} = max ($self->{largest_set},
+	    scalar @{$self->{set}{$_}{membership}});
+    }
+    delete $self->{backtrack_stack};	# Force setting of new problem.
+}
+
+
 =item $problem = $su->generate ($min, $max, $const);
 
 This method generates a problem and returns it.
@@ -690,6 +838,7 @@ in a typical Sudoku puzzle. My experience with the default is:
  cube 3          default is too large
  cube half       default is OK
  cube full       default is OK
+ quincunx 3      default is too large
  sudoku 3        default is OK
  sudoku 4        default is OK
  sudokux 3       default is OK
@@ -709,7 +858,7 @@ with each constraint name possibly followed by an equals sign and a
 number to specify that that constraint can be used only a certain
 number of times. For example, 'F N ?=1' specifies a puzzle to be
 solved by use of any number of applications of the F and N constraints,
-and at must one guessed cell. If specified as a hash reference, the
+and at most one guessed cell. If specified as a hash reference, the
 keys are the constraint names, and the values are the usage counts,
 with undef meaning no limit. The hash reference corresponding to
 'F N ?=1' is {F => undef, N => undef, '?' => 1}. The default for this
@@ -736,10 +885,14 @@ one solution.
 
 =cut
 
+
 sub generate {
 my $self = shift;
-my $min = shift || floor floor (@{$self->{cell}} * @{$self->{cell}} /
+my $size = @{$self->{cell}} - $self->{cells_unused};
+my $min = shift || do {
+    floor ($size * $size /
 	($self->{largest_set} * keys %{$self->{set}}));
+};
 my $max = shift || floor ($min * 1.5);
 my $const = shift || 'F N B T';
 croak <<eod if ref $const && ref $const ne 'HASH';
@@ -756,21 +909,26 @@ $self->{debug} and do {
 Debug generate ($min, $max, @{[Dumper $const]})
 eod
     };
-my $size = @{$self->{cell}};
 my $syms = @{$self->{symbol_list}} - 1;
 croak <<eod if $min > $size;
 Error - You specified a minimum of $min given values, but the puzzle
         only contains $size cells.
 eod
 my $tries = $self->{generation_limit};
+$size = @{$self->{cell}};	# Note equivocation on $size.
 local $Data::Dumper::Terse = 1;
+my @universe = $self->{cells_unused} ?
+grep @{$self->{cell}[$_]{membership}}, (0 .. @{$self->{cell}} - 1) :
+(0 .. @{$self->{cell}} - 1);
 while (--$tries >= 0) {
     $self->problem ();	# We rely on this specifying an empty problem.
-    my @ix = (0 .. $size - 1);
+##    my @ix = (0 .. $size - 1);
+    my @ix = @universe;
     my $gen = 0;
     while ($gen++ < $min) {
 	my ($inx) = splice @ix, floor (rand scalar @ix), 1;
 	my $cell = $self->{cell}[$inx];
+##	@{$cell->{membership}} or redo;	# Ignore unused cells.
 	my @pos = grep {!$cell->{possible}{$_}} 1 .. $syms or next;
 	my $val = $pos[floor (rand scalar @pos)];
 	defined $val or confess <<eod, Dumper ($cell->{possible});
@@ -797,6 +955,7 @@ my %accessor = (
     columns => \&_get_value,
     debug => \&_get_value,
     generation_limit => \&_get_value,
+##    ignore_unused => \&_get_value,
     iteration_limit => \&_get_value,
     largest_set => \&_get_value,
     name => \&_get_value,
@@ -859,7 +1018,7 @@ my $self = shift;
 my $rslt = '';
 my $col = $self->{columns};
 my $row = $self->{rows} ||= floor (@{$self->{cell}} / $col);
-foreach (map {join ',', @{$_->{membership}}} @{$self->{cell}}) {
+foreach (map {join (',', @{$_->{membership}}) || ','} @{$self->{cell}}) {
     $rslt .= $_;
     if (--$col > 0) {$rslt .= ' '}
       else {
@@ -984,7 +1143,7 @@ my $self = shift;
 my $val = shift || '';
 $val =~ m/\S/ or
     $val = "$self->{symbol_list}[0] " x
-    scalar @{$self->{cell}};
+    (scalar @{$self->{cell}} - $self->{cells_unused});
 $val =~ s/\s+//g unless $self->{biggest_spec} > 1;
 $val =~ s/^\s+//;
 $val =~ s/\s+$//;
@@ -1009,7 +1168,7 @@ foreach (values %{$self->{set}}) {
     $_->{free} = @{$_->{membership}};
     $_->{content} = [$_->{free}];
     }
-$self->{cells_unassigned} = scalar @{$self->{cell}};
+$self->{cells_unassigned} = scalar @{$self->{cell}} - $self->{cells_unused};
 
 my $hash = $self->{symbol_hash};
 my $inx = 0;
@@ -1019,17 +1178,27 @@ foreach (split (($self->{biggest_spec} > 1 ? '\s+' : ''), $val)) {
 Error - Too many cell specifications. The topology allows only $max.
 eod
     next unless defined $_;
+    # was $self->{ignore_unused}
+    $self->{cells_unused} && !@{$self->{cell}[$inx]{membership}}
+	and do {$inx++; redo};
     $self->{allowed_symbols}{$_} and do {
-    $self->{debug} > 1 and print <<eod;
+	$self->{debug} > 1 and print <<eod;
 Debug problem - Cell $inx allows symbol set $_
 eod
 	my $cell = $self->{cell}[$inx];
+	@{$cell->{membership}} or croak <<eod;
+Error - Cell $inx is unused, and must be specified as empty.
+eod
 	for (my $val = 1; $val < $syms; $val++) {
 	    next if $self->{allowed_symbols}{$_}[$val];
 	    $cell->{possible}{$val} = 1;
 	    }
 	};
     defined $hash->{$_} or $_ = $self->{symbol_list}[0];
+    @{$self->{cell}[$inx]{membership}} || $_ eq $self->{symbol_list}[0]
+	or croak <<eod;
+Error - Cell $inx is unused, and must be specified as empty.
+eod
     $self->{debug} > 1 and print <<eod;
 Debug problem - Cell $inx specifies symbol $_
 eod
@@ -1044,10 +1213,17 @@ eod
     $inx++;
     }
 
-$inx == @{$self->{cell}} or croak <<eod;
+unless ($inx == $max) {
+    # was $self->{ignore_unused}
+    $self->{cells_unused} and do {
+	$inx -= $self->{cells_unused};
+	$max -= $self->{cells_unused};
+    };
+    croak <<eod;
 Error - Not enough cell specifications. you gave $inx but the topology
         defined $max.
 eod
+}
 
 $self->{constraints_used} = {};
 
@@ -1075,11 +1251,14 @@ my %mutator = (
     corresponding => \&_set_corresponding,
     cube => \&_set_cube,
     generation_limit => \&_set_number,
+##    ignore_unused => \&_set_value,
     iteration_limit => \&_set_number,
     latin => \&_set_latin,
     max_tuple => \&_set_number,
     name => \&_set_value,
+    null => \&_set_null,
     output_delimiter => \&_set_value,
+    quincunx => \&_set_quincunx,
     rows => \&_set_number,
     status_value => \&_set_status_value,
     sudoku => \&_set_sudoku,
@@ -1293,6 +1472,24 @@ $self->set (columns => $size, rows => $size, symbols => $syms,
     topology => $topo);
 }
 
+sub _set_null {
+    my $self = shift;
+    my $name = shift;
+    my ($size, $columns, $rows) = ref $_[0] ? @{$_[0]} : split ',', $_[0];
+    $self->{cell} = [];		# The cells themselves.
+    $self->{set} = {};		# The sets themselves.
+    $self->{largest_set} = 0;
+    $self->{intersection} = {};
+    $self->{cells_unused} = $size;
+    foreach my $cell_inx (0 .. $size - 1) {
+	my $cell = {membership => [], index => $cell_inx};
+	push @{$self->{cell}}, $cell;
+    }
+    delete $self->{backtrack_stack};	# Force setting of new problem.
+    defined $columns and $self->set (columns => $columns);
+    defined $rows and $self->set (rows => $rows);
+}
+
 sub _set_number {
 my $self = shift;
 my $name = shift;
@@ -1301,6 +1498,70 @@ _looks_like_number ($value) or croak <<eod;
 Error - Attribute $name must be numeric.
 eod
 $self->{$name} = $value;
+}
+
+sub _set_quincunx {
+    my $self = shift;
+    my $name = shift;
+    my ($order, $gap) = ref $_[0] ? @{$_[0]} : split ',', $_[0];
+    $order =~ m/\D/ and croak <<eod;
+Error - The quincunx order must be an integer.
+eod
+    if (defined $gap) {
+	$gap =~ m/\D/ and croak <<eod;
+Error - The quincunx gap must be an integer.
+eod
+	$gap > $order - 2 and croak <<eod;
+Error - The quincunx gap must not be greater than the order ($order) - 2.
+eod
+	$gap % 2 == $order % 2 or croak <<eod;
+Error - The gap must be the same parity (odd or even) as the order.
+eod
+    } else {
+	$gap = $order % 2;
+    }
+    my $cols = ($order * 2 + $gap) * $order;
+    $self->set(null => [$cols * $cols, $cols, $cols]);
+    my $osq = $order * $order;
+    $self->set(symbols => join (' ', '.', 1 .. $osq));
+    my @squares = do {	# Squares in terms of index of top left corner
+	my $offset = ($order + $gap) * $order;
+	my $inset = ($order - ($order - $gap) / 2) * $order;
+	(
+	    0,					# Top left square
+	    $offset,				# Top right square
+	    $inset * $cols + $inset,		# Middle square
+	    $offset * $cols,			# Bottom left square
+	    $offset * ($cols + 1),		# Bottom right square
+	)
+    };
+    my $limit = $osq - 1;
+    my @colinx = map $_ * $cols, 0 .. $limit;
+    my @sqinx = map $_ .. $_ + $order - 1, map $_ * $cols, 0 .. $order - 1;
+    my @sqloc = map $_ * $order, @sqinx;
+    my @sqgened;	# 's' sets generated, by origin cell.
+    # Crete the row, column, and square sets. These have the same names
+    # as those created by the corresponding 'sudoku' topology, but with
+    # 'g0' .. 'g4' prepended, representing the five individual
+    # 'standard' sudoku grids. For topology 'quincunx 3', the top left
+    # cell is in sets g0c0,g0r0,g0s0, the top right in g1c8,g1r0,g1s2,
+    # and so on. Because some of the 's' sets are duplicates, the
+    # higher-numbered ones are supressed. In topology 'quincunx 3', set
+    # g0s8 is the same as g2s0, so the latter is supressed.
+    foreach my $grid (0 .. $#squares) {
+	my $sqr = $squares[$grid];
+	foreach my $inx (0 .. $limit) {
+	    my $offset = $inx * $cols;
+	    my $o1 = $offset + $sqr;
+	    $self->add_set("g${grid}r$inx" => $o1 .. $o1 + $limit);
+	    $self->add_set("g${grid}c$inx" => map $_ + $inx + $sqr,
+		@colinx);
+	    $o1 = $sqloc[$inx] + $sqr;
+	    $sqgened[$o1]++
+		or $self->add_set("g${grid}s$inx" => map $_ + $o1,
+		@sqinx);
+	}
+    }
 }
 
 sub _set_status_value {
@@ -1370,11 +1631,12 @@ $self->{cell} = [];		# The cells themselves.
 $self->{set} = {};		# The sets themselves.
 $self->{largest_set} = 0;
 $self->{intersection} = {};
+$self->{cells_unused} = 0;
 my $cell_inx = 0;
 foreach my $cell_def (map {split '\s+', $_} @_) {
     my $cell = {membership => [], index => $cell_inx};
     push @{$self->{cell}}, $cell;
-    foreach my $name (sort split ',', $cell_def) {
+    foreach my $name (sort grep $_ ne '', split ',', $cell_def) {
 	foreach my $other (@{$cell->{membership}}) {
 	    my $int = "$other,$name";
 	    $self->{intersection}{$int} ||= [];
@@ -1387,6 +1649,7 @@ foreach my $cell_def (map {split '\s+', $_} @_) {
 	$self->{largest_set} = max ($self->{largest_set},
 	    scalar @{$set->{membership}});
 	}
+    @{$cell->{membership}} or $self->{cells_unused}++;
     $cell_inx++;
     }
 delete $self->{backtrack_stack};	# Force setting of new problem.
@@ -1589,6 +1852,7 @@ while ($done) {
     my $inx = 0;				# Cell index.
     foreach my $cell (@{$self->{cell}}) {
 	next if $cell->{content};		# Skip already-assigned cells.
+	next unless @{$cell->{membership}};	# Skip unused cells.
 	my $pos = 0;
 	foreach (values %{$cell->{possible}}) {$_ or $pos++};
 	if ($pos > 1) {			# > 1 possibility. Can't apply.
@@ -1640,6 +1904,8 @@ while (my ($name, $set) = each %{$self->{set}}) {
     foreach my $inx (@{$set->{membership}}) {
 	my $cell  = $self->{cell}[$inx];
 	next if $cell->{content};
+	# No need to check @{$cell->{membership}}, since the cell is
+	# known to be a member of set $name.
 	while (my ($val, $count) = each %{$cell->{possible}}) {
 	    next if $count;
 	    $suppliers[$val] ||= [];
@@ -1686,6 +1952,8 @@ while (my ($int, $cells) = each %{$self->{intersection}}) {
     my %int_cells;	# Cells in the intersection
     foreach my $inx (@$cells) {
 	next if $self->{cell}[$inx]{content};
+	# No need to check @{$cell->{membership}}, since the cell is
+	# known to be a member of at least two sets.
 	$int_cells{$inx} = 1;
 	while (my ($val, $imposs) = each %{$self->{cell}[$inx]{possible}}) {
 	    $int_supplies[$val] = 1 unless $imposs;
@@ -1762,6 +2030,8 @@ while (my ($name, $set) = each %{$self->{set}}) {
     my @open = grep {!$_->{content}}
     map {$self->{cell}[$_]} @{$set->{membership}}
 	or next;
+    # No need to check @{$_->{membership}} in the grep, since cell $_ is
+    # known to be a member of set $name.
     foreach my $cell (@open) {
 	for (my $val = 1; $val < $syms; $val++) {
 	    $cell->{possible}{$val} and next;
@@ -1901,6 +2171,7 @@ my @try;
 my $syms = @{$self->{symbol_list}};
 foreach my $cell (@{$self->{cell}}) {
     next if $cell->{content};
+    next unless @{$cell->{membership}};
     my $possible = 0;
     for (my $val = 1; $val < $syms; $val++) {
 	$possible++ unless $cell->{possible}{$val};
@@ -2071,7 +2342,7 @@ join '', @steps;
 #	_looks_like_number is cribbed heavily from
 #	Scalar::Util::looks_like_number by Graham Barr. This version
 #	only accepts integers, but it is really here because
-#	ActivePerl's Scalar::Util is to ancient to export
+#	ActivePerl's Scalar::Util is too ancient to export
 #	looks_like_number.
 
 sub _looks_like_number {
@@ -2154,9 +2425,14 @@ my $row = $self->{rows} ||= floor (@{$self->{cell}} / $col);
 my $fmt = "%$self->{biggest_symbol}s";
 foreach (@{$self->{cell}}) {
     $col == $self->{columns} and $rslt .= $prefix;
-    $rslt .= sprintf $fmt, $self->{symbol_list}[$_->{content} || 0];
+    # was $self->{ignore_unused}
+    $rslt .= ($self->{cells_unused} && !@{$_->{membership}}) ?
+	sprintf ($fmt, ' ') :
+	sprintf ($fmt, $self->{symbol_list}[$_->{content} || 0]);
     if (--$col > 0) {$rslt .= $self->{output_delimiter}}
       else {
+	# was $self->{ignore_unused}
+	$self->{cells_unused} and $rslt =~ s/\s+$//m;
 	$rslt .= "\n";
 	$col = $self->{columns};
 	if (--$row <= 0) {
@@ -2288,6 +2564,13 @@ provided a treasure trove of 'non-standard' Sudoku puzzles.
      and other documentation tweaks.
    Moved General.pm to lib/Games/Sudoku.
    Added Build.PL
+ 0.008 T. R. Wyant
+   Tweak docs.
+   Support unused cells.
+   Add drop_set() method to undo add_set().
+   Add 'null' attribute to generate a puzzle with no topology.
+   Add 'quincunx' attribute to generate a quincunx (a.k.a.
+     'Samurai Sudoku')
 
 =head1 SEE ALSO
 
@@ -2325,7 +2608,7 @@ Thomas R. Wyant, III (F<wyant at cpan dot org>)
 
 =head1 COPYRIGHT
 
-Copyright 2005, 2006 by Thomas R. Wyant, III
+Copyright 2005, 2006, 2008 by Thomas R. Wyant, III
 (F<wyant at cpan dot org>). All rights reserved.
 
 This module is free software; you can use it, redistribute it
@@ -2351,6 +2634,8 @@ and/or modify it under the same terms as Perl itself.
 #				   # the cell. Each element is false if
 #				   # the value is possible.
 #  P {cells_unassigned}		# Number of empty cells remaining
+#  T {cells_unused}		# Number of cells which are not members
+#				# of any set.
 #  S {constraints_used} = {}	# The number of times each constraint
 #				# was applied.
 #  T {intersection}{$name} = []	# The indices of the cells in the named

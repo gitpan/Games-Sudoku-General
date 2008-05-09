@@ -3,7 +3,7 @@ use ExtUtils::MakeMaker qw{WriteMakefile prompt};
 use FileHandle;
 use Getopt::Std;
 
-our $VERSION = '0.002';
+our $VERSION = '0.003';
 
 my %opt;
 getopts ('n', \%opt) or die <<eod;
@@ -36,7 +36,7 @@ if ($opt{n}) {
   else {
     foreach (qw{sudokug}) {
 	push @exe_files, $_
-##	    if prompt ("Do you want to install $_?", 'n') =~ m/^y/i;
+	    if prompt ("Do you want to install $_?", 'n') =~ m/^y/i;
 	}
     }
 
@@ -72,6 +72,7 @@ eod
 ##my $vers = $] >= 5.008 ? '-5.8' : '';
 my $vers = '';
 
+(my $mmv = ExtUtils::MakeMaker->VERSION) =~ s/_//g;
 WriteMakefile (
 ##	(MM->can ('signature_target') ? (SIGN => 1) : ()),
 	NAME => 'Games::Sudoku::General',
@@ -87,5 +88,7 @@ WriteMakefile (
 		AUTHOR => 'Tom Wyant (wyant at cpan dot org)',
 		ABSTRACT => 'Solve Sudoku and related puzzles',
 		BINARY_LOCATION => "$Config{archname}$vers/Games-Sudoku-General.tar.gz",
+		($mmv >= 6.31 ?
+		    (LICENSE => 'perl') : ())
 		) : (),
 	);
