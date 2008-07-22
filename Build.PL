@@ -1,4 +1,4 @@
-#!/usr/bin/perl
+use 5.006;	# For 'our', at the very least.
 
 use strict;
 use warnings;

@@ -1,3 +1,7 @@
+use 5.006;	# For 'our', at the very least.
+use strict;
+use warnings;
+
 use Config;
 use ExtUtils::MakeMaker qw{WriteMakefile prompt};
 use FileHandle;
