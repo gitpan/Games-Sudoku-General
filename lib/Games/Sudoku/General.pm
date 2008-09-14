@@ -585,7 +585,7 @@ use warnings;
 
 use base qw{Exporter};
 
-our $VERSION = '0.009';
+our $VERSION = '0.010';
 our @EXPORT_OK = qw{
 	SUDOKU_SUCCESS
 	SUDOKU_NO_SOLUTION
@@ -2577,6 +2577,8 @@ provided a treasure trove of 'non-standard' Sudoku puzzles.
    'use 5.006', for 'our' at the very least.
    Update 'SEE ALSO'
    add =head1 LICENSE to POD.
+ 0.010 T. R. Wyant
+   Fixed Build.PL to heed -y and -n options.
 
 =head1 SEE ALSO
 
