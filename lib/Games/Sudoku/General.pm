@@ -576,26 +576,26 @@ This package provides the following public methods:
 
 =cut
 
-use 5.006;	# For 'our', at least.
-
 package Games::Sudoku::General;
+
+use 5.006;	# For 'our', at least.
 
 use strict;
 use warnings;
 
 use base qw{Exporter};
 
-our $VERSION = '0.010';
+our $VERSION = '0.010_90';
 our @EXPORT_OK = qw{
-	SUDOKU_SUCCESS
-	SUDOKU_NO_SOLUTION
-	SUDOKU_TOO_HARD
-	SUDOKU_MULTIPLE_SOLUTIONS
-	};
+    SUDOKU_SUCCESS
+    SUDOKU_NO_SOLUTION
+    SUDOKU_TOO_HARD
+    SUDOKU_MULTIPLE_SOLUTIONS
+};
 our %EXPORT_TAGS = (
     all => \@EXPORT_OK,
     status => \@EXPORT_OK,
-    );
+);
 use Carp;
 use Data::Dumper;
 use List::Util qw{first max reduce};
@@ -611,7 +611,7 @@ my @status_values = (
     'No solution found',
     'No solution found before exceeding iteration limit',
     'Multiple solutions found',
-    );
+);
 
 =item $su = Games::Sudoku::General->new ()
 
@@ -636,16 +636,25 @@ The newly-instantiated object is returned.
 =cut
 
 sub new {
-my $class = shift;
-my $self = bless {debug => 0, generation_limit => 30, iteration_limit => 0,
-	output_delimiter => ' '}, $class;
-@_ and $self->set (@_);
-$self->{cell} or $self->set (sudoku => 3);
-$self->{symbol_list} or $self->set (symbols => join ' ', '.', 1 .. $self->{largest_set});
-defined $self->{columns} or $self->set (columns => @{$self->{symbol_list}} - 1);
-defined $self->{status_value} or $self->set (status_value => SUDOKU_SUCCESS);
-defined $self->{max_tuple} or $self->set (max_tuple => 4);
-$self;
+    my ($class, @args) = @_;
+    ref $class and $class = ref $class;
+    my $self = bless {
+	debug => 0,
+	generation_limit => 30,
+	iteration_limit => 0,
+	output_delimiter => ' ',
+    }, $class;
+    @args and $self->set (@args);
+    $self->{cell} or $self->set (sudoku => 3);
+    $self->{symbol_list}
+	or $self->set (symbols => join ' ', '.', 1 .. $self->{largest_set});
+    defined $self->{columns}
+	or $self->set (columns => @{$self->{symbol_list}} - 1);
+    defined $self->{status_value}
+	or $self->set (status_value => SUDOKU_SUCCESS);
+    defined $self->{max_tuple}
+	or $self->set (max_tuple => 4);
+    return $self;
 }
 
 =item $su->add_set ($name => $cell ...)
@@ -658,31 +667,33 @@ modify an existing set with this method, nor can you add new cells.
 =cut
 
 sub add_set {
-my $self = shift;
-my $name = shift;
-$self->{set}{$name} and croak <<eod;
+    my ($self, $name, @cells) = @_;
+    $self->{set}{$name} and croak <<eod;
 Error - Set '$name' already exists.
 eod
-foreach my $inx (@_) {$self->{cell}[$inx] or croak <<eod}
+    foreach my $inx (@cells) {
+	$self->{cell}[$inx] or croak <<eod
 Error - Cell $inx does not exist.
 eod
-foreach my $inx (@_) {
-    my $cell = $self->{cell}[$inx];
-    @{$cell->{membership}} or --$self->{cells_unused};
-    foreach my $other (@{$cell->{membership}}) {
-	my $int = join ',', sort $other, $name;
-	$self->{intersection}{$int} ||= [];
-	push @{$self->{intersection}{$int}}, $inx;
-	}
-    @{$cell->{membership}} = sort $name, @{$cell->{membership}};
     }
-$self->{set}{$name} = {
-    name => $name,
-    membership => [sort @_],
+    foreach my $inx (@cells) {
+	my $cell = $self->{cell}[$inx];
+	@{$cell->{membership}} or --$self->{cells_unused};
+	foreach my $other (@{$cell->{membership}}) {
+	    my $int = join ',', sort $other, $name;
+	    $self->{intersection}{$int} ||= [];
+	    push @{$self->{intersection}{$int}}, $inx;
+	}
+	@{$cell->{membership}} = sort $name, @{$cell->{membership}};
+    }
+    $self->{set}{$name} = {
+	name => $name,
+	membership => [sort @cells],
     };
-$self->{largest_set} = max ($self->{largest_set},
-    scalar @{$self->{set}{$name}{membership}});
-delete $self->{backtrack_stack};	# Force setting of new problem.
+    $self->{largest_set} = max ($self->{largest_set},
+	scalar @{$self->{set}{$name}{membership}});
+    delete $self->{backtrack_stack};	# Force setting of new problem.
+    return $self;
 }
 
 
@@ -702,11 +713,12 @@ version 0.001
 =cut
 
 sub constraints_used {
-my $self = shift;
-return unless $self->{constraints_used} && defined wantarray;
-return %{$self->{constraints_used}} if wantarray;
-my $rslt = join ' ', grep {$self->{constraints_used}{$_}} qw{F N B T X Y W ?};
-$rslt;
+    my $self = shift;
+    return unless $self->{constraints_used} && defined wantarray;
+    return %{$self->{constraints_used}} if wantarray;
+    my $rslt = join ' ', grep {
+	$self->{constraints_used}{$_}} qw{F N B T X Y W ?};
+    return $rslt;
 }
 
 
@@ -722,61 +734,64 @@ See L<CLIPBOARD SUPPORT> for what is needed for this to work.
 {	# Local symbol block.
     my $copier;
     sub copy {
-    my $self = shift;
-    $copier ||= $^O eq 'MSWin32' ? _copier_win32 () || croak <<eod :
+	my $self = shift;
+	$copier ||= $^O eq 'MSWin32' ? (_copier_win32 () ||
+		croak <<eod) :
 Error - Copy to clipboard unavailable. Can not load Win32::Clipboard.
 eod
-	$^O eq 'cygwin' ? _copier_win32 () || _copier_xclip () || croak <<eod :
+	    $^O eq 'cygwin' ? (_copier_win32 () || _copier_xclip () ||
+		croak <<eod) :
 Error - Copy to clipboard unavailable. Can not load Win32::Clipboard,
         and xclip has not been installed. For xclip, see
 	http://freshmeat.net/projects/xclip
 eod
-	$^O eq 'darwin' ? _copier_pbcopy () || _copier_xclip () || croak <<eod :
+	    $^O eq 'darwin' ? (_copier_pbcopy () || _copier_xclip () ||
+		croak <<eod) :
 Error - Copy to clipboard unavailable. Can not find the pbcopy program,
         which is supposed to come with Mac OS X. Can not find xclip
 	either. For xclip, see http://freshmeat.net/projects/xclip.
 eod
-	$^O eq 'MacOS' ? croak <<eod :
+	    $^O eq 'MacOS' ? croak <<eod :
 Error - Copy to clipboard unavailable under Mac OS 9 or below.
 eod
-	_copier_xclip () || croak <<eod;
+	    _copier_xclip () || croak <<eod;
 Error - Copy to clipboard unavailable. The xclip program has not been
         installed. See http://freshmeat.net/projects/xclip for a copy.
 eod
-    $copier->($self->_unload ());
+	$copier->($self->_unload ());
+	return $self;
     }
 }
 
 sub _copier_external {
-my ($code, $probe) = @_;
-no warnings qw{exec};
-`$probe`;
-use warnings qw{exec};
-$? ? undef : sub {
-    my $hdl;
-    open ($hdl, "|$code") or croak <<eod;
-Error - failed to open output handle to $code.
-        $!
-eod
-    print $hdl @_;
-    '';
+    my ($code, $probe) = @_;
+    `$probe`;	# Don't care what it returns.
+    return $? ? undef : sub {
+	open my $hdl, '|-', $code
+	    or croak "Error - failed to open output handle to $code: $!";
+	print $hdl @_;
+	close $hdl;
+	return '';
     }
 }
 
 sub _copier_pbcopy {
-_copier_external (pbcopy => 'pbcopy -help 2>&1');
+    return _copier_external (pbcopy => 'pbcopy -help 2>&1');
 }
 
 sub _copier_xclip {
-_copier_external (xclip => 'xclip -o');
+    return _copier_external (xclip => 'xclip -o');
 }
 
 sub _copier_win32 {
-eval "use Win32::Clipboard";
-$@ ? undef : sub {
-    (my $s = join '', @_) =~ s/\n/\r\n/mg;
-    Win32::Clipboard->new ()->Set ($s);
-    }
+    eval {
+	_require( 'Win32::Clipboard' );
+	1;
+    } and return sub {
+	(my $s = join '', @_) =~ s/\n/\r\n/mg;
+	Win32::Clipboard->new ()->Set ($s);
+    };
+    return;
 }
 
 
@@ -816,6 +831,7 @@ eod
 	    scalar @{$self->{set}{$_}{membership}});
     }
     delete $self->{backtrack_stack};	# Force setting of new problem.
+    return $self;
 }
 
 
@@ -887,73 +903,74 @@ one solution.
 
 =cut
 
-
 sub generate {
-my $self = shift;
-my $size = @{$self->{cell}} - $self->{cells_unused};
-my $min = shift || do {
-    floor ($size * $size /
-	($self->{largest_set} * keys %{$self->{set}}));
-};
-my $max = shift || floor ($min * 1.5);
-my $const = shift || 'F N B T';
-croak <<eod if ref $const && ref $const ne 'HASH';
+    my $self = shift;
+    my $size = @{$self->{cell}} - $self->{cells_unused};
+    my $min = shift || do {
+	floor ($size * $size /
+	    ($self->{largest_set} * keys %{$self->{set}}));
+    };
+    my $max = shift || floor ($min * 1.5);
+    my $const = shift || 'F N B T';
+    croak <<eod if ref $const && ref $const ne 'HASH';
 Error - The constraints argument must be a string or a hash reference,
     not a @{[ref $const]} reference.
 eod
-$const = {map {my @ret; $_ and do {
-	@ret = split '=', $_, 2; push @ret, undef while @ret < 2}; @ret}
-	split '\s+', $const}
-    unless ref $const eq 'HASH';
-$self->{debug} and do {
-    local $Data::Dumper::Terse = 1;
-    print <<eod;
+    $const = {map {my @ret; $_ and do {
+	    @ret = split '=', $_, 2; push @ret, undef while @ret < 2}; @ret}
+	    split '\s+', $const}
+	unless ref $const eq 'HASH';
+    $self->{debug} and do {
+	local $Data::Dumper::Terse = 1;
+	print <<eod;
 Debug generate ($min, $max, @{[Dumper $const]})
 eod
     };
-my $syms = @{$self->{symbol_list}} - 1;
-croak <<eod if $min > $size;
+    my $syms = @{$self->{symbol_list}} - 1;
+    croak <<eod if $min > $size;
 Error - You specified a minimum of $min given values, but the puzzle
         only contains $size cells.
 eod
-my $tries = $self->{generation_limit};
-$size = @{$self->{cell}};	# Note equivocation on $size.
-local $Data::Dumper::Terse = 1;
-my @universe = $self->{cells_unused} ?
-grep @{$self->{cell}[$_]{membership}}, (0 .. @{$self->{cell}} - 1) :
-(0 .. @{$self->{cell}} - 1);
-while (--$tries >= 0) {
-    $self->problem ();	# We rely on this specifying an empty problem.
-##    my @ix = (0 .. $size - 1);
-    my @ix = @universe;
-    my $gen = 0;
-    while ($gen++ < $min) {
-	my ($inx) = splice @ix, floor (rand scalar @ix), 1;
-	my $cell = $self->{cell}[$inx];
-##	@{$cell->{membership}} or redo;	# Ignore unused cells.
-	my @pos = grep {!$cell->{possible}{$_}} 1 .. $syms or next;
-	my $val = $pos[floor (rand scalar @pos)];
-	defined $val or confess <<eod, Dumper ($cell->{possible});
+    my $tries = $self->{generation_limit};
+    $size = @{$self->{cell}};	# Note equivocation on $size.
+    local $Data::Dumper::Terse = 1;
+    my @universe = $self->{cells_unused} ?
+	grep {@{$self->{cell}[$_]{membership}}} (0 .. @{$self->{cell}} - 1) :
+	(0 .. @{$self->{cell}} - 1);
+    while (--$tries >= 0) {
+	$self->problem ();	# We rely on this specifying an empty problem.
+##	my @ix = (0 .. $size - 1);
+	my @ix = @universe;
+	my $gen = 0;
+	while ($gen++ < $min) {
+	    my ($inx) = splice @ix, floor (rand scalar @ix), 1;
+	    my $cell = $self->{cell}[$inx];
+##	    @{$cell->{membership}} or redo;	# Ignore unused cells.
+	    my @pos = grep {!$cell->{possible}{$_}} 1 .. $syms or next;
+	    my $val = $pos[floor (rand scalar @pos)];
+	    defined $val or confess <<eod, Dumper ($cell->{possible});
 Programming error  - generate() selected an undefined value for cell $inx.
         Possible values hash is:
 eod
-	$self->_try ($cell, $val) and confess <<eod, Dumper ($cell->{possible});
+	    $self->_try ($cell, $val)
+		and confess <<eod, Dumper ($cell->{possible});
 Programming error - generate() tried to assign $val to cell $inx,
          but it was rejected. Possible values hash is:
 eod
 	}
-    $self->solution () or next;
-    $self->_constraint_remove ($min, $max, $const);
-    my $prob = $self->_unload ('', SUDOKU_SUCCESS);
-    $self->problem ($prob);
-    $self->copy ($prob) if $self->{autocopy};
-    return $prob;
+	$self->solution () or next;
+	$self->_constraint_remove ($min, $max, $const);
+	my $prob = $self->_unload ('', SUDOKU_SUCCESS);
+	$self->problem ($prob);
+	$self->copy ($prob) if $self->{autocopy};
+	return $prob;
     }
-return;
+    return;
 }
 
 my %accessor = (
     allowed_symbols => \&_get_allowed_symbols,
+    autocopy => \&_get_value,
     columns => \&_get_value,
     debug => \&_get_value,
     generation_limit => \&_get_value,
@@ -967,7 +984,7 @@ my %accessor = (
     status_value => \&_get_value,
     symbols => \&_get_symbols,
     topology => \&_get_topology,
-    );
+);
 
 =item $value = $su->get ($name);
 
@@ -983,61 +1000,62 @@ attribute names after the first are ignored.
 =cut
 
 sub get {
-my $self = shift;
-my @rslt;
-wantarray or @_ = ($_[0]);
-foreach my $name (@_) {
-    exists $accessor{$name} or croak <<eod;
+    my ($self, @args) = @_;
+    my @rslt;
+    wantarray or @args = ($args[0]);
+    foreach my $name (@args) {
+	exists $accessor{$name} or croak <<eod;
 Error - Attribute $name does not exist, or is write-only.
 eod
-    push @rslt, $accessor{$name}->($self, $name);
+	push @rslt, $accessor{$name}->($self, $name);
     }
-wantarray ? @rslt : $rslt[0];
+    return wantarray ? @rslt : $rslt[0];
 }
 
 sub _get_allowed_symbols {
-my $self = shift;
-my $rslt = '';
-my $syms = @{$self->{symbol_list}};
-foreach (sort keys %{$self->{allowed_symbols}}) {
-    my @symlst;
-    for (my $val = 1; $val < $syms; $val++) {
-	push @symlst, $self->{symbol_list}[$val]
-	    if $self->{allowed_symbols}{$_}[$val];
+    my $self = shift;
+    my $rslt = '';
+    my $syms = @{$self->{symbol_list}};
+    foreach (sort keys %{$self->{allowed_symbols}}) {
+	my @symlst;
+	for (my $val = 1; $val < $syms; $val++) {
+	    push @symlst, $self->{symbol_list}[$val]
+		if $self->{allowed_symbols}{$_}[$val];
 	}
-    $rslt .= "$_=@{[join ',', @symlst]}\n";
+	$rslt .= "$_=@{[join ',', @symlst]}\n";
     }
-$rslt;
+    return $rslt;
 }
 
 sub _get_symbols {
-my $self = shift;
-join ' ', @{$self->{symbol_list}};
+    my $self = shift;
+    return join ' ', @{$self->{symbol_list}};
 }
 
 sub _get_topology {
-my $self = shift;
-my $rslt = '';
-my $col = $self->{columns};
-my $row = $self->{rows} ||= floor (@{$self->{cell}} / $col);
-foreach (map {join (',', @{$_->{membership}}) || ','} @{$self->{cell}}) {
-    $rslt .= $_;
-    if (--$col > 0) {$rslt .= ' '}
-      else {
-	$rslt .= "\n";
-	$col = $self->{columns};
-	if (--$row <= 0) {
+    my $self = shift;
+    my $rslt = '';
+    my $col = $self->{columns};
+    my $row = $self->{rows} ||= floor (@{$self->{cell}} / $col);
+    foreach (map {join (',', @{$_->{membership}}) || ','} @{$self->{cell}}) {
+	$rslt .= $_;
+	if (--$col > 0) {
+	    $rslt .= ' '
+	} else {
 	    $rslt .= "\n";
-	    $row = $self->{rows};
+	    $col = $self->{columns};
+	    if (--$row <= 0) {
+		$rslt .= "\n";
+		$row = $self->{rows};
 	    }
 	}
     }
-0 while chomp $rslt;
-$rslt .= "\n";
-$rslt;
+    0 while chomp $rslt;
+    $rslt .= "\n";
+    return $rslt;
 }
 
-sub _get_value {$_[0]->{$_[1]}}
+sub _get_value {return $_[0]->{$_[1]}}
 
 
 =item $su->paste ()
@@ -1052,63 +1070,65 @@ See L<CLIPBOARD SUPPORT> for what is needed for this to work.
 
     my $paster;
     sub paste {
-    my $self = shift;
-    $paster ||=  $^O eq 'MSWin32' ? _paster_win32 () || croak <<eod :
+	my $self = shift;
+	$paster ||=  $^O eq 'MSWin32' ? (_paster_win32 () ||
+		croak <<eod) :
 Error - Paste from clipboard unavailable. Can not load Win32::Clipboard.
 eod
-	$^O eq 'cygwin' ? _paster_win32 () || _paster_xclip () || croak <<eod :
+	    $^O eq 'cygwin' ? (_paster_win32 () || _paster_xclip () ||
+		croak <<eod) :
 Error - Paste from clipboard unavailable. Can not load Win32::Clipboard,
         and xclip has not been installed. For xclip, see
 	http://freshmeat.net/projects/xclip
 eod
-	$^O eq 'darwin' ? _paster_pbpaste () || _paster_xclip () || croak <<eod :
+	    $^O eq 'darwin' ? (_paster_pbpaste () || _paster_xclip () ||
+		croak <<eod) :
 Error - Paste from clipboard unavailable. Can not find the pbpaste
         program, which is supposed to come with Mac OS X. Can not find
 	xclip either. For xclip, see http://freshmeat.net/projects/xclip.
 eod
-	$^O eq 'MacOS' ? croak <<eod :
+	    $^O eq 'MacOS' ? croak <<eod :
 Error - Paste from clipboard unavailable under Mac OS 9 or below.
 eod
-	_paster_xclip () || croak <<eod;
+	    (_paster_xclip () || croak <<eod);
 Error - Paste from clipboard unavailable. The xclip program has not been
         installed. See http://freshmeat.net/projects/xclip for a copy.
 eod
-    $self->problem ($paster->());
-    $self->_unload ();
+	$self->problem ($paster->());
+	$self->_unload ();
+	return $self;
     }
 
 
 }	#	End local symbol block
 
 sub _paster_external {
-my ($code, $probe) = @_;
-no warnings qw{exec};
-`$probe`;
-use warnings qw{exec};
-$? ? undef : sub {
-    my $hdl;
-    open ($hdl, "$code|") or croak <<eod;
-Error - failed to open input handle from $code.
-        $!
-eod
-    local $/ = undef;
-    <$hdl>;
+    my ($code, $probe) = @_;
+    `$probe`;	# Not interested in what probe returns.
+    return $? ? undef : sub {
+	local $/ = undef;
+	open my $hdl, '-|', $code
+	    or croak "Error - failed to open input handle from $code: $!";
+	my $buffer = <$hdl>;
+	close $hdl;
+	return $buffer;
     }
 }
 
 sub _paster_pbpaste {
-_paster_external (pbpaste => 'pbpaste -help 2>&1');
+    return _paster_external (pbpaste => 'pbpaste -help 2>&1');
 }
 
 sub _paster_xclip {
-_copier_external ('xclip -o' => 'xclip -o');
+    return _copier_external ('xclip -o' => 'xclip -o');
 }
 
 sub _paster_win32 {
-eval "use Win32::Clipboard";
-$@ ? undef : sub {
-    Win32::Clipboard->new ()->Get ();
-    }
+    eval {
+	_require( 'Win32::Clipboard' );
+	1;
+    } and return sub { return Win32::Clipboard->new()->Get(); };
+    return;
 }
 
 
@@ -1141,105 +1161,129 @@ time you set the symbol names.
 =cut
 
 sub problem {
-my $self = shift;
-my $val = shift || '';
-$val =~ m/\S/ or
-    $val = "$self->{symbol_list}[0] " x
-    (scalar @{$self->{cell}} - $self->{cells_unused});
-$val =~ s/\s+//g unless $self->{biggest_spec} > 1;
-$val =~ s/^\s+//;
-$val =~ s/\s+$//;
-$self->{debug} and print <<eod;
+    my $self = shift;
+    my $val = shift || '';
+    $val =~ m/\S/ or
+	$val = "$self->{symbol_list}[0] " x
+	(scalar @{$self->{cell}} - $self->{cells_unused});
+    $val =~ s/\s+//g unless $self->{biggest_spec} > 1;
+    $val =~ s/^\s+//;
+    $val =~ s/\s+$//;
+    $self->{debug} and print <<eod;
 Debug problem - Called with $val
 eod
 
-local $Data::Dumper::Terse = 1;
-$self->{largest_set} >= @{$self->{symbol_list}} and croak <<eod;
+    local $Data::Dumper::Terse = 1;
+    $self->{largest_set} >= @{$self->{symbol_list}} and croak <<eod;
 Error - The largest set has $self->{largest_set} cells, but there are only @{[
 		@{$self->{symbol_list}} - 1]} symbols.
         Either the set definition is in error or the list of symbols is
         incomplete.
 eod
 
-my $syms = @{$self->{symbol_list}};
-foreach (@{$self->{cell}}) {
-    $_->{content} = $_->{chosen} = 0;
-    $_->{possible} = {map {$_ => 0} (1 .. $syms - 1)};
+    my $syms = @{$self->{symbol_list}};
+    foreach (@{$self->{cell}}) {
+	$_->{content} = $_->{chosen} = 0;
+	$_->{possible} = {map {$_ => 0} (1 .. $syms - 1)};
     }
-foreach (values %{$self->{set}}) {
-    $_->{free} = @{$_->{membership}};
-    $_->{content} = [$_->{free}];
+    foreach (values %{$self->{set}}) {
+	$_->{free} = @{$_->{membership}};
+	$_->{content} = [$_->{free}];
     }
-$self->{cells_unassigned} = scalar @{$self->{cell}} - $self->{cells_unused};
+    $self->{cells_unassigned} = scalar @{$self->{cell}} - $self->{cells_unused};
 
-my $hash = $self->{symbol_hash};
-my $inx = 0;
-my $max = @{$self->{cell}};
-foreach (split (($self->{biggest_spec} > 1 ? '\s+' : ''), $val)) {
-    $inx >= $max and croak <<eod;
+    my $hash = $self->{symbol_hash};
+    my $inx = 0;
+    my $max = @{$self->{cell}};
+    foreach (split (($self->{biggest_spec} > 1 ? '\s+' : ''), $val)) {
+	$inx >= $max and croak <<eod;
 Error - Too many cell specifications. The topology allows only $max.
 eod
-    next unless defined $_;
-    # was $self->{ignore_unused}
-    $self->{cells_unused} && !@{$self->{cell}[$inx]{membership}}
-	and do {$inx++; redo};
-    $self->{allowed_symbols}{$_} and do {
-	$self->{debug} > 1 and print <<eod;
+	next unless defined $_;
+	# was $self->{ignore_unused}
+	($self->{cells_unused} && !@{$self->{cell}[$inx]{membership}})
+	    and do {$inx++; redo};
+	$self->{allowed_symbols}{$_} and do {
+	    $self->{debug} > 1 and print <<eod;
 Debug problem - Cell $inx allows symbol set $_
 eod
-	my $cell = $self->{cell}[$inx];
-	@{$cell->{membership}} or croak <<eod;
+	    my $cell = $self->{cell}[$inx];
+	    @{$cell->{membership}} or croak <<eod;
 Error - Cell $inx is unused, and must be specified as empty.
 eod
-	for (my $val = 1; $val < $syms; $val++) {
-	    next if $self->{allowed_symbols}{$_}[$val];
-	    $cell->{possible}{$val} = 1;
+	    for (my $val = 1; $val < $syms; $val++) {
+		next if $self->{allowed_symbols}{$_}[$val];
+		$cell->{possible}{$val} = 1;
 	    }
 	};
-    defined $hash->{$_} or $_ = $self->{symbol_list}[0];
-    @{$self->{cell}[$inx]{membership}} || $_ eq $self->{symbol_list}[0]
-	or croak <<eod;
+	defined $hash->{$_} or $_ = $self->{symbol_list}[0];
+	(@{$self->{cell}[$inx]{membership}} ||
+	    $_ eq $self->{symbol_list}[0])
+	    or croak <<eod;
 Error - Cell $inx is unused, and must be specified as empty.
 eod
-    $self->{debug} > 1 and print <<eod;
+	$self->{debug} > 1 and print <<eod;
 Debug problem - Cell $inx specifies symbol $_
 eod
-    $self->_try ($inx, $hash->{$_}) and croak <<eod;
+	$self->_try ($inx, $hash->{$_}) and croak <<eod;
 Error - Symbol '$_' appears more than once in a set.
         The problem loaded thus far is:
 @{[$self->_unload ('        ')]}
 eod
-    $self->{cell}[$inx]{chosen} = $hash->{$_} ? 1 : 0;
-    }
-  continue {
-    $inx++;
+	$self->{cell}[$inx]{chosen} = $hash->{$_} ? 1 : 0;
+    } continue {
+	$inx++;
     }
 
-unless ($inx == $max) {
-    # was $self->{ignore_unused}
-    $self->{cells_unused} and do {
-	$inx -= $self->{cells_unused};
-	$max -= $self->{cells_unused};
-    };
-    croak <<eod;
+    unless ($inx == $max) {
+	# was $self->{ignore_unused}
+	$self->{cells_unused} and do {
+	    $inx -= $self->{cells_unused};
+	    $max -= $self->{cells_unused};
+	};
+	croak <<eod;
 Error - Not enough cell specifications. you gave $inx but the topology
         defined $max.
 eod
-}
+    }
 
-$self->{constraints_used} = {};
+    $self->{constraints_used} = {};
 
-$self->{debug} and print <<eod;
+    $self->{debug} and print <<eod;
 Debug problem - problem loaded.
 eod
 
-$self->{backtrack_stack} = [];
-$self->{cell_order} = [];
-delete $self->{no_more_solutions};
+    $self->{backtrack_stack} = [];
+    $self->{cell_order} = [];
+    delete $self->{no_more_solutions};
 
-$self->{debug} > 1 and print "         object = ", Dumper ($self);
+    $self->{debug} > 1 and print "         object = ", Dumper ($self);
 
-$self;
+    return $self;
+}
+
+{
+
+    my %required;
+
+    sub _require {
+	my ( $module ) = @_;
+	$required{$module}
+	    and return $required{$module}->();
+	( my $fn = $module ) =~ s{ :: }{/}smxg;
+	$fn .= '.pm';
+	eval {
+	    my $rslt = require $fn;
+	    $required{$module} = sub { return $rslt };
+	    1;
+	} or do {
+	    my $err = $@;
+	    $required{$module} = sub { die $err };
+	};
+
+	return $required{$module}->();
+
+    }
 }
 
 
@@ -1267,7 +1311,7 @@ my %mutator = (
     sudokux => \&_set_sudokux,
     symbols => \&_set_symbols,
     topology => \&_set_topology,
-    );
+);
 
 =item $su->set ($name => $value);
 
@@ -1287,94 +1331,92 @@ The object itself is returned.
 =cut
 
 sub set {
-my $self = shift;
-while (@_) {
-    my $name = shift;
-    exists $mutator{$name} or croak <<eod;
+    my $self = shift;
+    while (@_) {
+	my $name = shift;
+	exists $mutator{$name} or croak <<eod;
 Error - Attribute $name does not exist, or is read-only.
 eod
-    $mutator{$name}->($self, $name, shift);
+	$mutator{$name}->($self, $name, shift);
     }
-$self;
+    return $self;
 }
 
 sub _set_allowed_symbols {
-my $self = shift;
-my $name = shift;
-my $value = shift || '';
-my $maxlen = 0;
-$self->{debug} and print <<eod;
+    my ($self, $name, $value) = @_;
+    defined $value or $value = '';
+    my $maxlen = 0;
+    $self->{debug} and print <<eod;
 Debug allowed_symbols being set to '$value'
 eod
-if ($value) {
-    foreach (split '\s+', $value) {
-	my ($name, $value) = split '=', $_, 2;
-	croak <<eod if $self->{symbol_hash}{$name};
+    if ($value) {
+	foreach (split '\s+', $value) {
+	    my ($name, $value) = split '=', $_, 2;
+	    croak <<eod if $self->{symbol_hash}{$name};
 Error - You can not use '$name' as a symbol constraint name, because
         it is a valid symbol name.
 eod
-	$value or do {delete $self->{allowed_symbols}{$name}; next};
-	$maxlen = max ($maxlen, length ($name));
-	$self->{debug} > 1 and print <<eod;
+	    $value or do {delete $self->{allowed_symbols}{$name}; next};
+	    $maxlen = max ($maxlen, length ($name));
+	    $self->{debug} > 1 and print <<eod;
 Debug allowed_symbols - $_
         set name '$name' has length @{[length ($name)]}. Maxlen now $maxlen.
 eod
-	my $const = $self->{allowed_symbols}{$name} = [];
-	foreach (split ',', $value) {
-	    $self->{debug} > 1 and print <<eod;
+	    my $const = $self->{allowed_symbols}{$name} = [];
+	    foreach (split ',', $value) {
+		$self->{debug} > 1 and print <<eod;
 Debug allowed_symbols - Adding symbol '$_' to set '$name'.
 eod
-	    $self->{symbol_hash}{$_} or croak <<eod;
+		$self->{symbol_hash}{$_} or croak <<eod;
 Error - '$_' is not a valid symbol.
 eod
-	    $const->[$self->{symbol_hash}{$_}] = 1;
+		$const->[$self->{symbol_hash}{$_}] = 1;
 	    }
 	}
+    } else {
+	$self->{allowed_symbols} = {};
     }
-  else {
-    $self->{allowed_symbols} = {};
-    }
-$self->{biggest_spec} = $maxlen if $maxlen > $self->{biggest_spec};
+    $self->{biggest_spec} = $maxlen if $maxlen > $self->{biggest_spec};
+    return;
 }
 
 sub _set_brick {
-my $self = shift;
-my $name = shift;
-my ($horiz, $vert, $size) = ref $_[0] ? @{$_[0]} : split ',', $_[0];
-$size ||= $horiz * $vert;
-$size % $horiz || $size % $vert and croak <<eod;
+    my ($self, $name, $value) = @_;
+    my ($horiz, $vert, $size) = ref $value ? @$value : split ',', $value;
+    $size ||= $horiz * $vert;
+    ($size % $horiz || $size % $vert) and croak <<eod;
 Error - The puzzle size $size must be a multiple of both the horizontal
         brick size $horiz and the vertical brick size $vert.
 eod
-my $rowmul = floor ($size / $horiz);
-my $syms = '.';
-my $topo = '';
-for (my $row = 0; $row < $size; $row++) {
-    $syms .= " @{[$row + 1]}";
-    for (my $col = 0; $col < $size; $col++) {
-	$topo .= sprintf ' r%d,c%d,s%d', $row, $col,
-		floor ($row / $vert) * $rowmul + floor ($col / $horiz);
+    my $rowmul = floor ($size / $horiz);
+    my $syms = '.';
+    my $topo = '';
+    for (my $row = 0; $row < $size; $row++) {
+	$syms .= " @{[$row + 1]}";
+	for (my $col = 0; $col < $size; $col++) {
+	    $topo .= sprintf ' r%d,c%d,s%d', $row, $col,
+		    floor ($row / $vert) * $rowmul + floor ($col / $horiz);
 	}
     }
-substr ($topo, 0, 1, '');
-$self->set (columns => $size,  rows => $size, symbols => $syms,
-    topology => $topo);
+    substr ($topo, 0, 1, '');
+    $self->set (columns => $size,  rows => $size, symbols => $syms,
+	topology => $topo);
+    return;
 }
 
 sub _set_corresponding {
-my $self = shift;
-my $name = shift;
-my $order = shift;
-my $size = $order * $order;
-$self->set (sudoku => $order);
-my $order_minus_1 = $order - 1;
-my $offset = $size * $order;
-for (my $inx = 0; $inx < $size; $inx++) {
-    my $base = floor ($inx / $order) * $size + $inx % $order;
-    $self->add_set ("u$inx", map {
-	my $g = $_ * $offset + $base;
-	(map {$_ * $order + $g} 0 .. $order_minus_1)} 0 .. $order_minus_1);
+    my ($self, $name, $order) = @_;
+    my $size = $order * $order;
+    $self->set (sudoku => $order);
+    my $order_minus_1 = $order - 1;
+    my $offset = $size * $order;
+    for (my $inx = 0; $inx < $size; $inx++) {
+	my $base = floor ($inx / $order) * $size + $inx % $order;
+	$self->add_set ("u$inx", map {
+	    my $g = $_ * $offset + $base;
+	    (map {$_ * $order + $g} 0 .. $order_minus_1)} 0 .. $order_minus_1);
     }
+    return;
 }
 
 my %cube = (
@@ -1418,66 +1460,62 @@ p1,r3,s4 p1,r2,s4 p1,r1,s4 p1,r0,s4
 p2,r3,s5 p2,r2,s5 p2,r1,s5 p2,r0,s5
 p3,r3,s5 p3,r2,s5 p3,r1,s5 p3,r0,s5
 eod
-    );
+);
 
 sub _set_cube {
-my $self = shift;
-my $name = shift;
-my $type = shift;
-if ($type =~ m/\D/) {
-    $cube{$type} or croak <<eod;
+    my ($self, $name, $type) = @_;
+    if ($type =~ m/\D/) {
+	$cube{$type} or croak <<eod;
 Error - Cube type '$type' is not defined. Legal values are numeric (for
         Dion cube), or one of @{[join ', ', map {"'$_'"} sort keys %cube]}
 eod
-    $self->set (topology => $cube{$type}, columns => 4, rows => 4);
-    }
-  else {
-    my $size = $type * $type;
-    my $topo = '';
-    for (my $x = 0; $x < $size; $x++) {
-	for (my $y = 0; $y < $size; $y++) {
-	    for (my $z = 0; $z < $size; $z++) {
-		$topo .= join (',',
-			_cube_set_names ($type, x => $x, $y, $z),
-			_cube_set_names ($type, y => $y, $z, $x),
-			_cube_set_names ($type, z => $z, $x, $y)) . ' ';
+	$self->set (topology => $cube{$type}, columns => 4, rows => 4);
+    } else {
+	my $size = $type * $type;
+	my $topo = '';
+	for (my $x = 0; $x < $size; $x++) {
+	    for (my $y = 0; $y < $size; $y++) {
+		for (my $z = 0; $z < $size; $z++) {
+		    $topo .= join (',',
+			    _cube_set_names ($type, x => $x, $y, $z),
+			    _cube_set_names ($type, y => $y, $z, $x),
+			    _cube_set_names ($type, z => $z, $x, $y)) . ' ';
 		}
 	    }
 	}
-    $self->set (topology => $topo, columns => $size, rows => $size);
+	$self->set (topology => $topo, columns => $size, rows => $size);
     }
-$self->set (symbols => join ' ', '.', 1 .. $self->{largest_set});
+    $self->set (symbols => join ' ', '.', 1 .. $self->{largest_set});
+    return;
 }
 
 sub _cube_set_names {
-my ($order, $name, $x, $y, $z) = @_;
-my $tplt = sprintf '%s%d%%s%%d', $name, $x;
-map {sprintf $tplt, @$_} [r => $y], [c => $z],
-    [s => floor ($y / $order) * $order + floor ($z / $order)]
+    my ($order, $name, $x, $y, $z) = @_;
+    my $tplt = sprintf '%s%d%%s%%d', $name, $x;
+    return map {sprintf $tplt, @$_} [r => $y], [c => $z],
+	[s => floor ($y / $order) * $order + floor ($z / $order)]
 }
 
 sub _set_latin {
-my $self = shift;
-my $name = shift;
-my $size = shift;
-my $syms = '.';
-my $topo = '';
-my $letter = 'A';
-for (my $row = 0; $row < $size; $row++) {
-    $syms .= " @{[$letter++]}";
-    for (my $col = 0; $col < $size; $col++) {
-	$topo .= sprintf ' r%d,c%d', $row, $col;
+    my ($self, $name, $size) = @_;
+    my $syms = '.';
+    my $topo = '';
+    my $letter = 'A';
+    for (my $row = 0; $row < $size; $row++) {
+	$syms .= " @{[$letter++]}";
+	for (my $col = 0; $col < $size; $col++) {
+	    $topo .= sprintf ' r%d,c%d', $row, $col;
 	}
     }
-substr ($topo, 0, 1, '');
-$self->set (columns => $size, rows => $size, symbols => $syms,
-    topology => $topo);
+    substr ($topo, 0, 1, '');
+    $self->set (columns => $size, rows => $size, symbols => $syms,
+	topology => $topo);
+    return;
 }
 
 sub _set_null {
-    my $self = shift;
-    my $name = shift;
-    my ($size, $columns, $rows) = ref $_[0] ? @{$_[0]} : split ',', $_[0];
+    my ($self, $name, $value) = @_;
+    my ($size, $columns, $rows) = ref $value ? @$value : split ',', $value;
     $self->{cell} = [];		# The cells themselves.
     $self->{set} = {};		# The sets themselves.
     $self->{largest_set} = 0;
@@ -1490,22 +1528,21 @@ sub _set_null {
     delete $self->{backtrack_stack};	# Force setting of new problem.
     defined $columns and $self->set (columns => $columns);
     defined $rows and $self->set (rows => $rows);
+    return;
 }
 
 sub _set_number {
-my $self = shift;
-my $name = shift;
-my $value = shift;
-_looks_like_number ($value) or croak <<eod;
+    my ($self, $name, $value) = @_;
+    _looks_like_number ($value) or croak <<eod;
 Error - Attribute $name must be numeric.
 eod
-$self->{$name} = $value;
+    $self->{$name} = $value;
+    return;
 }
 
 sub _set_quincunx {
-    my $self = shift;
-    my $name = shift;
-    my ($order, $gap) = ref $_[0] ? @{$_[0]} : split ',', $_[0];
+    my ($self, $name, $value) = @_;
+    my ($order, $gap) = ref $value ? @$value : split ',', $value;
     $order =~ m/\D/ and croak <<eod;
 Error - The quincunx order must be an integer.
 eod
@@ -1538,9 +1575,9 @@ eod
 	)
     };
     my $limit = $osq - 1;
-    my @colinx = map $_ * $cols, 0 .. $limit;
-    my @sqinx = map $_ .. $_ + $order - 1, map $_ * $cols, 0 .. $order - 1;
-    my @sqloc = map $_ * $order, @sqinx;
+    my @colinx = map {$_ * $cols} 0 .. $limit;
+    my @sqinx = map {$_ .. $_ + $order - 1} map {$_ * $cols} 0 .. $order - 1;
+    my @sqloc = map {$_ * $order} @sqinx;
     my @sqgened;	# 's' sets generated, by origin cell.
     # Crete the row, column, and square sets. These have the same names
     # as those created by the corresponding 'sudoku' topology, but with
@@ -1556,108 +1593,113 @@ eod
 	    my $offset = $inx * $cols;
 	    my $o1 = $offset + $sqr;
 	    $self->add_set("g${grid}r$inx" => $o1 .. $o1 + $limit);
-	    $self->add_set("g${grid}c$inx" => map $_ + $inx + $sqr,
+	    $self->add_set("g${grid}c$inx" => map {$_ + $inx + $sqr}
 		@colinx);
 	    $o1 = $sqloc[$inx] + $sqr;
 	    $sqgened[$o1]++
-		or $self->add_set("g${grid}s$inx" => map $_ + $o1,
+		or $self->add_set("g${grid}s$inx" => map {$_ + $o1}
 		@sqinx);
 	}
     }
+    return;
 }
 
 sub _set_status_value {
-my $self = shift;
-my $name = shift;
-my $value = shift;
-_looks_like_number ($value) or croak <<eod;
+    my $self = shift;
+    my $name = shift;
+    my $value = shift;
+    _looks_like_number ($value) or croak <<eod;
 Error - Attribute $name must be numeric.
 eod
-$value < 0 || $value >= @status_values and croak <<eod;
+    ($value < 0 || $value >= @status_values) and croak <<eod;
 Error - Attribute $name must be greater than or equal to 0 and
         less than @{[scalar @status_values]}
 eod
-$self->{status_value} = $value;
-$self->{status_text} = $status_values[$value];
+    $self->{status_value} = $value;
+    $self->{status_text} = $status_values[$value];
+    return;
 }
 
 sub _set_sudoku {
-my $self = shift;
-my $name = shift;
-my $order = shift;
-$self->set (brick => [$order, $order, $order * $order]);
+    my $self = shift;
+    my $name = shift;
+    my $order = shift;
+    $self->set (brick => [$order, $order, $order * $order]);
+    return;
 }
 
 sub _set_sudokux {
-my $self = shift;
-my $name = shift;
-my $order = shift;
-$self->set (sudoku => $order);
-my $size = $order * $order;
-my $size_minus_1 = $size - 1;
-my $size_plus_1 = $size + 1;
-$self->add_set (d0 => map {$_ * $size_plus_1} 0 .. $size_minus_1);
-$self->add_set (d1 => map {$_ * $size_minus_1} 1 .. $size);
+    my $self = shift;
+    my $name = shift;
+    my $order = shift;
+    $self->set (sudoku => $order);
+    my $size = $order * $order;
+    my $size_minus_1 = $size - 1;
+    my $size_plus_1 = $size + 1;
+    $self->add_set (d0 => map {$_ * $size_plus_1} 0 .. $size_minus_1);
+    $self->add_set (d1 => map {$_ * $size_minus_1} 1 .. $size);
+    return;
 }
 
 sub _set_symbols {
-my $self = shift;
-my $name = shift;
-my $value = shift;
-my @lst = split '\s+', $value;
-my %hsh;
-my $inx = 0;
-my $maxlen = 0;
-foreach (@lst) {
-    defined $_ or next;
-    m/,/ and croak <<eod;
+    my $self = shift;
+    my $name = shift;
+    my $value = shift;
+    my @lst = split '\s+', $value;
+    my %hsh;
+    my $inx = 0;
+    my $maxlen = 0;
+    foreach (@lst) {
+	defined $_ or next;
+	m/,/ and croak <<eod;
 Error - Symbols may not contain commas.
 eod
-    exists $hsh{$_} and croak <<eod;
+	exists $hsh{$_} and croak <<eod;
 Error - Symbol '$_' specified more than once.
 eod
-    $hsh{$_} = $inx++;
-    $maxlen = max ($maxlen, length ($_));
+	$hsh{$_} = $inx++;
+	$maxlen = max ($maxlen, length ($_));
     }
-$self->{symbol_list} = \@lst;
-$self->{symbol_hash} = \%hsh;
-$self->{symbol_number} = scalar @lst;
-$self->{biggest_spec} = $self->{biggest_symbol} = $maxlen;
-$self->{allowed_symbols} = {};
+    $self->{symbol_list} = \@lst;
+    $self->{symbol_hash} = \%hsh;
+    $self->{symbol_number} = scalar @lst;
+    $self->{biggest_spec} = $self->{biggest_symbol} = $maxlen;
+    $self->{allowed_symbols} = {};
+    return;
 }
 
 sub _set_topology {
-my $self = shift;
-my $name = shift;
-$self->{cell} = [];		# The cells themselves.
-$self->{set} = {};		# The sets themselves.
-$self->{largest_set} = 0;
-$self->{intersection} = {};
-$self->{cells_unused} = 0;
-my $cell_inx = 0;
-foreach my $cell_def (map {split '\s+', $_} @_) {
-    my $cell = {membership => [], index => $cell_inx};
-    push @{$self->{cell}}, $cell;
-    foreach my $name (sort grep $_ ne '', split ',', $cell_def) {
-	foreach my $other (@{$cell->{membership}}) {
-	    my $int = "$other,$name";
-	    $self->{intersection}{$int} ||= [];
-	    push @{$self->{intersection}{$int}}, $cell_inx;
+    my ($self, $name, @args) = @_;
+    $self->{cell} = [];		# The cells themselves.
+    $self->{set} = {};		# The sets themselves.
+    $self->{largest_set} = 0;
+    $self->{intersection} = {};
+    $self->{cells_unused} = 0;
+    my $cell_inx = 0;
+    foreach my $cell_def (map {split '\s+', $_} @args) {
+	my $cell = {membership => [], index => $cell_inx};
+	push @{$self->{cell}}, $cell;
+	foreach my $name (sort grep {$_ ne ''} split ',', $cell_def) {
+	    foreach my $other (@{$cell->{membership}}) {
+		my $int = "$other,$name";
+		$self->{intersection}{$int} ||= [];
+		push @{$self->{intersection}{$int}}, $cell_inx;
 	    }
-	push @{$cell->{membership}}, $name;
-	my $set = $self->{set}{$name} ||=
-		{name => $name, membership => []};
-	push @{$set->{membership}}, $cell_inx;
-	$self->{largest_set} = max ($self->{largest_set},
-	    scalar @{$set->{membership}});
+	    push @{$cell->{membership}}, $name;
+	    my $set = $self->{set}{$name} ||=
+		    {name => $name, membership => []};
+	    push @{$set->{membership}}, $cell_inx;
+	    $self->{largest_set} = max ($self->{largest_set},
+		scalar @{$set->{membership}});
 	}
-    @{$cell->{membership}} or $self->{cells_unused}++;
-    $cell_inx++;
+	@{$cell->{membership}} or $self->{cells_unused}++;
+	$cell_inx++;
     }
-delete $self->{backtrack_stack};	# Force setting of new problem.
+    delete $self->{backtrack_stack};	# Force setting of new problem.
+    return;
 }
 
-sub _set_value {$_[0]->{$_[1]} = $_[2]}
+sub _set_value {$_[0]->{$_[1]} = $_[2]; return;}
 
 
 =item $string = $su->solution ();
@@ -1677,19 +1719,19 @@ Status values set:
 =cut
 
 sub solution {
-my $self = shift;
+    my $self = shift;
 
-$self->{backtrack_stack} or croak <<eod;
+    $self->{backtrack_stack} or croak <<eod;
 Error - You cannot call the solution() method unless you have specified
         the problem via the problem() method.
 eod
 
-$self->{debug} and print <<eod;
+    $self->{debug} and print <<eod;
 Debug solution - entering method. Stack depth = @{[
 	scalar @{$self->{backtrack_stack}}]}
 eod
 
-$self->_constrain ();
+    return $self->_constrain ();
 }
 
 
@@ -1738,11 +1780,11 @@ in scalar context, it is the symbol itself.
 =cut
 
 sub steps {
-my $self = shift;
-wantarray ? (@{$self->{backtrack_stack}}) :
-    defined wantarray ?
-	$self->_format_constraint (@{$self->{backtrack_stack}}) :
-    undef;
+    my $self = shift;
+    return wantarray ? (@{$self->{backtrack_stack}}) :
+	defined wantarray ?
+	    $self->_format_constraint (@{$self->{backtrack_stack}}) :
+	undef;
 }
 
 =item $string = $su->unload ();
@@ -1754,8 +1796,8 @@ puzzle was loaded.
 =cut
 
 sub unload {
-my $self = shift;
-$self->_unload ()
+    my $self = shift;
+    return $self->_unload ()
 }
 
 ########################################################################
@@ -1773,64 +1815,64 @@ $self->_unload ()
 
 my %constraint_method = (
     '?' => '_constraint_backtrack',
-    );
+);
 
 sub _constrain {
-my $self = shift;
-my $stack = $self->{backtrack_stack} ||= [];	# May hit this when initializing.
-my $used = $self->{constraints_used} ||= {};
-##my $syms = @{$self->{symbol_list}};
-my $iterations = $self->{iteration_limit}
-    if $self->{iteration_limit} > 0;
+    my $self = shift;
+    my $stack = $self->{backtrack_stack} ||= [];	# May hit this
+							# when initializing.
+    my $used = $self->{constraints_used} ||= {};
+    my $iterations;
+    $iterations = $self->{iteration_limit}
+	if $self->{iteration_limit} > 0;
 
-$self->{no_more_solutions} and
-    return $self->_unload (undef, SUDOKU_NO_SOLUTION);
-
-@{$self->{backtrack_stack}} and do {
-    $self->_constraint_remove and
+    $self->{no_more_solutions} and
 	return $self->_unload (undef, SUDOKU_NO_SOLUTION);
-   };
 
-$self->{cells_unassigned} or do {
-    $self->{no_more_solutions} = 1;
-    return $self->_unload ('', SUDOKU_SUCCESS);
+    @{$self->{backtrack_stack}} and do {
+	$self->_constraint_remove and
+	    return $self->_unload (undef, SUDOKU_NO_SOLUTION);
     };
 
-my $number_of_cells = @{$self->{cell}};
+    $self->{cells_unassigned} or do {
+	$self->{no_more_solutions} = 1;
+	return $self->_unload ('', SUDOKU_SUCCESS);
+    };
+
+    my $number_of_cells = @{$self->{cell}};
 
 constraint_loop:
-{	# Begin outer constraint loop.
+    {	# Begin outer constraint loop.
 
-    foreach my $constraint (qw{F N B T ?}) {
-	confess <<eod if @{$self->{cell}} != $number_of_cells;
+	foreach my $constraint (qw{F N B T ?}) {
+	    confess <<eod if @{$self->{cell}} != $number_of_cells;
 Programming error - Before trying $constraint constraint.
         We started with $number_of_cells cells, but now have @{[
 	scalar @{$self->{cell}}]}.
 eod
-	my $method = $constraint_method{$constraint} ||
-		"_constraint_$constraint";
-	my $rslt = $self->$method () or next;
-	@$rslt or next;
-	foreach my $constr (@$rslt) {
-	    if (ref $constr) {
-		push @$stack, $constr;
-		$used->{$constr->[0]}++
-		}
-	      else {
-		my $rslt = $self->_constraint_remove or
-		    redo constraint_loop;
-		return $self->_unload ('', $rslt);
+	    my $method = $constraint_method{$constraint} ||
+		    "_constraint_$constraint";
+	    my $rslt = $self->$method () or next;
+	    @$rslt or next;
+	    foreach my $constr (@$rslt) {
+		if (ref $constr) {
+		    push @$stack, $constr;
+		    $used->{$constr->[0]}++
+		} else {
+		    my $rslt = $self->_constraint_remove or
+			redo constraint_loop;
+		    return $self->_unload ('', $rslt);
 	        }
 	    }
-	$self->{cells_unassigned} or
-	    return $self->_unload ('', SUDOKU_SUCCESS);
-	redo constraint_loop;
+	    $self->{cells_unassigned} or
+		return $self->_unload ('', SUDOKU_SUCCESS);
+	    redo constraint_loop;
 	}
 
     }	# end outer constraint loop.
 
-$self->set (status_value => SUDOKU_TOO_HARD);
-return undef;
+    $self->set (status_value => SUDOKU_TOO_HARD);
+    return;
 }
 
 #	Constraint executors:
@@ -1845,80 +1887,77 @@ return undef;
 #	progress.
 
 sub _constraint_F {
-my $self = shift;
-my @stack;
-my $done = 1;
+    my $self = shift;
+    my @stack;
+    my $done = 1;
 
-while ($done) {
-    $done = 0;
-    my $inx = 0;				# Cell index.
-    foreach my $cell (@{$self->{cell}}) {
-	next if $cell->{content};		# Skip already-assigned cells.
-	next unless @{$cell->{membership}};	# Skip unused cells.
-	my $pos = 0;
-	foreach (values %{$cell->{possible}}) {$_ or $pos++};
-	if ($pos > 1) {			# > 1 possibility. Can't apply.
-	    }
-	  elsif ($pos == 1) {		# Exactly 1 possibility. Apply.
-	    my $val;
-	    foreach (keys %{$cell->{possible}}) {
-		next if $cell->{possible}{$_};
-		$val = $_;
-		last;
+    while ($done) {
+	$done = 0;
+	my $inx = 0;				# Cell index.
+	foreach my $cell (@{$self->{cell}}) {
+	    next if $cell->{content};		# Skip already-assigned cells.
+	    next unless @{$cell->{membership}};	# Skip unused cells.
+	    my $pos = 0;
+	    foreach (values %{$cell->{possible}}) {$_ or $pos++};
+	    if ($pos > 1) {			# > 1 possibility. Can't apply.
+	    } elsif ($pos == 1) {		# Exactly 1 possibility. Apply.
+		my $val;
+		foreach (keys %{$cell->{possible}}) {
+		    next if $cell->{possible}{$_};
+		    $val = $_;
+		    last;
 		}
-	    $self->_try ($cell, $val) and confess <<eod;
+		$self->_try ($cell, $val) and confess <<eod;
 Programming error - Passed 'F' constraint but _try failed.
 eod
-	    my $constraint = [F => [$inx, $val]];
-	    $self->{debug} and
-		print '#    ', $self->_format_constraint ($constraint);
-	    $done++;
-	    push @stack, $constraint;
-	    $self->{cells_unassigned} or do {$done = 0; last};
-	    }
-	  else {				# No possibilities. Backtrack.
-	    $self->{debug} and print <<eod;
+		my $constraint = [F => [$inx, $val]];
+		$self->{debug} and
+		    print '#    ', $self->_format_constraint ($constraint);
+		$done++;
+		push @stack, $constraint;
+		$self->{cells_unassigned} or do {$done = 0; last};
+	    } else {				# No possibilities. Backtrack.
+		$self->{debug} and print <<eod;
 Debug - Cell $inx has no possible values. Backtracking.
 eod
-	    $self->{debug} > 1 and do {
-		local $Data::Dumper::Terse = 1;
-		print Dumper $cell;
+		$self->{debug} > 1 and do {
+		    local $Data::Dumper::Terse = 1;
+		    print Dumper $cell;
 		};
-	    push @stack, 'backtrack';
-	    $done = 0;
-	    last;
+		push @stack, 'backtrack';
+		$done = 0;
+		last;
 	    }
-	}
-      continue {
-	$inx++;
+	} continue {
+	    $inx++;
 	}
     }
-return \@stack;
+    return \@stack;
 }
 
 
 #	N constraint - the only cell which supplies a necessary value.
 
 sub _constraint_N {
-my $self = shift;
-while (my ($name, $set) = each %{$self->{set}}) {
-    my @suppliers;
-    foreach my $inx (@{$set->{membership}}) {
-	my $cell  = $self->{cell}[$inx];
-	next if $cell->{content};
-	# No need to check @{$cell->{membership}}, since the cell is
-	# known to be a member of set $name.
-	while (my ($val, $count) = each %{$cell->{possible}}) {
-	    next if $count;
-	    $suppliers[$val] ||= [];
-	    push @{$suppliers[$val]}, $inx;
+    my $self = shift;
+    while (my ($name, $set) = each %{$self->{set}}) {
+	my @suppliers;
+	foreach my $inx (@{$set->{membership}}) {
+	    my $cell  = $self->{cell}[$inx];
+	    next if $cell->{content};
+	    # No need to check @{$cell->{membership}}, since the cell is
+	    # known to be a member of set $name.
+	    while (my ($val, $count) = each %{$cell->{possible}}) {
+		next if $count;
+		$suppliers[$val] ||= [];
+		push @{$suppliers[$val]}, $inx;
 	    }
 	}
-    my $limit = @suppliers;
-    for (my $val = 1; $val < $limit; $val++) {
-	next unless $suppliers[$val] && @{$suppliers[$val]} == 1;
-	my $inx = $suppliers[$val][0];
-	$self->_try ($inx, $val) and confess <<eod, $self->{debug} ? <<eod : ();
+	my $limit = @suppliers;
+	for (my $val = 1; $val < $limit; $val++) {
+	    next unless $suppliers[$val] && @{$suppliers[$val]} == 1;
+	    my $inx = $suppliers[$val][0];
+	    $self->_try ($inx, $val) and confess <<eod, $self->{debug} ? <<eod : ();
 Programming error - Cell $inx passed 'N' constraint but try of
         $self->{symbol_list}[$val] failed.
 eod
@@ -1926,14 +1965,14 @@ eod
 ]}         set: $name
         cell: @{[Dumper ($self->{cell}[$inx])]}
 eod
-	my $constraint = [N => [$inx, $val]];
-	$self->{debug} and
-	    print '#    ', $self->_format_constraint ($constraint);
-	keys %{$self->{set}};	# Reset iterator.
-	return [$constraint];
+	    my $constraint = [N => [$inx, $val]];
+	    $self->{debug} and
+		print '#    ', $self->_format_constraint ($constraint);
+	    keys %{$self->{set}};	# Reset iterator.
+	    return [$constraint];
 	}
     }
-return [];
+    return [];
 }
 
 #	B constraint - "box claim". Given two sets whose intersection
@@ -1946,58 +1985,61 @@ return [];
 #	other can be a row or a column.
 
 sub _constraint_B {
-my $self = shift;
-my $done = 0;
-while (my ($int, $cells) = each %{$self->{intersection}}) {
-    next unless @$cells > 1;
-    my @int_supplies;	# Values supplied by the intersection
-    my %int_cells;	# Cells in the intersection
-    foreach my $inx (@$cells) {
-	next if $self->{cell}[$inx]{content};
-	# No need to check @{$cell->{membership}}, since the cell is
-	# known to be a member of at least two sets.
-	$int_cells{$inx} = 1;
-	while (my ($val, $imposs) = each %{$self->{cell}[$inx]{possible}}) {
-	    $int_supplies[$val] = 1 unless $imposs;
-	    }
-	}
-    my %ext_supplies;	# Intersection values also supplied outside.
-    my %ext_cells;	# Cells not in the intersection.
-    my @set_names = split ',', $int;
-    foreach my $set (@set_names) {
-	$ext_supplies{$set} = [];
-	$ext_cells{$set} = [];
-	foreach my $inx (@{$self->{set}{$set}{membership}}) {
-	    next if $int_cells{$inx};	# Skip cells in intersection.
+    my $self = shift;
+    my $done = 0;
+    while (my ($int, $cells) = each %{$self->{intersection}}) {
+	next unless @$cells > 1;
+	my @int_supplies;	# Values supplied by the intersection
+	my %int_cells;	# Cells in the intersection
+	foreach my $inx (@$cells) {
 	    next if $self->{cell}[$inx]{content};
-	    push @{$ext_cells{$set}}, $inx;
-	    while (my ($val, $imposs) = each %{$self->{cell}[$inx]{possible}}) {
-		$ext_supplies{$set}[$val] = 1 if !$imposs && $int_supplies[$val];
+	    # No need to check @{$cell->{membership}}, since the cell is
+	    # known to be a member of at least two sets.
+	    $int_cells{$inx} = 1;
+	    while (my ($val, $imposs) = each %{
+		    $self->{cell}[$inx]{possible}}) {
+		$int_supplies[$val] = 1 unless $imposs;
+	    }
+	}
+	my %ext_supplies;	# Intersection values also supplied outside.
+	my %ext_cells;	# Cells not in the intersection.
+	my @set_names = split ',', $int;
+	foreach my $set (@set_names) {
+	    $ext_supplies{$set} = [];
+	    $ext_cells{$set} = [];
+	    foreach my $inx (@{$self->{set}{$set}{membership}}) {
+		next if $int_cells{$inx};	# Skip cells in intersection.
+		next if $self->{cell}[$inx]{content};
+		push @{$ext_cells{$set}}, $inx;
+		while (my ($val, $imposs) = each %{
+			$self->{cell}[$inx]{possible}}) {
+		    $ext_supplies{$set}[$val] = 1
+			if !$imposs && $int_supplies[$val];
 		}
 	    }
 	}
-    for (my $val = 1; $val < @int_supplies; $val++) {
-	next unless $int_supplies[$val];
-	my @occurs_in = grep {$ext_supplies{$_}[$val]} @set_names;
-	next unless @occurs_in && @occurs_in < @set_names;
-	my %cells_claimed;
-	foreach my $set (@occurs_in) {
-	    foreach my $inx (@{$ext_cells{$set}}) {
-		next if $self->{cell}[$inx]{possible}{$val};
-		$cells_claimed{$inx} = 1;
-		$self->{cell}[$inx]{possible}{$val} = 1;
-		$done++;
+	for (my $val = 1; $val < @int_supplies; $val++) {
+	    next unless $int_supplies[$val];
+	    my @occurs_in = grep {$ext_supplies{$_}[$val]} @set_names;
+	    next unless @occurs_in && @occurs_in < @set_names;
+	    my %cells_claimed;
+	    foreach my $set (@occurs_in) {
+		foreach my $inx (@{$ext_cells{$set}}) {
+		    next if $self->{cell}[$inx]{possible}{$val};
+		    $cells_claimed{$inx} = 1;
+		    $self->{cell}[$inx]{possible}{$val} = 1;
+		    $done++;
 		}
 	    }
-	next unless $done;
-	my $constraint = [B => [[sort keys %cells_claimed], $val]];
-	$self->{debug} and
-	    print '#    ', $self->_format_constraint ($constraint);
-	keys %{$self->{intersection}};	# Reset iterator.
-	return [$constraint];
+	    next unless $done;
+	    my $constraint = [B => [[sort keys %cells_claimed], $val]];
+	    $self->{debug} and
+		print '#    ', $self->_format_constraint ($constraint);
+	    keys %{$self->{intersection}};	# Reset iterator.
+	    return [$constraint];
 	}
     }
-return []
+    return []
 }
 
 #	T constraint - "tuple" (double, triple, quad). These come in
@@ -2022,38 +2064,38 @@ return []
 #	Angus separates naked and hidden tuples.
 
 sub _constraint_T {
-my $self = shift;
-my @tuple;		# Tuple indices
-my %vacant;		# Empty cells by set. $vacant{$set} = [$cell ...]
-my %contributors;	# Number of cells which can contrib value, by set.
-my $syms = @{$self->{symbol_list}};
+    my $self = shift;
+    my @tuple;		# Tuple indices
+    my %vacant;		# Empty cells by set. $vacant{$set} = [$cell ...]
+    my %contributors;	# Number of cells which can contrib value, by set.
+    my $syms = @{$self->{symbol_list}};
 
-while (my ($name, $set) = each %{$self->{set}}) {
-    my @open = grep {!$_->{content}}
-    map {$self->{cell}[$_]} @{$set->{membership}}
-	or next;
-    # No need to check @{$_->{membership}} in the grep, since cell $_ is
-    # known to be a member of set $name.
-    foreach my $cell (@open) {
-	for (my $val = 1; $val < $syms; $val++) {
-	    $cell->{possible}{$val} and next;
-	    $contributors{$name} ||= [];
-	    $contributors{$name}[$val]++;
+    while (my ($name, $set) = each %{$self->{set}}) {
+	my @open = grep {!$_->{content}}
+	map {$self->{cell}[$_]} @{$set->{membership}}
+	    or next;
+	# No need to check @{$_->{membership}} in the grep, since cell
+	# $_ is known to be a member of set $name.
+	foreach my $cell (@open) {
+	    for (my $val = 1; $val < $syms; $val++) {
+		$cell->{possible}{$val} and next;
+		$contributors{$name} ||= [];
+		$contributors{$name}[$val]++;
 	    }
 	}
-    @{$contributors{$name}} = map {$_ || 0} @{$contributors{$name}};
-    $vacant{$name} = \@open;
-    $tuple[scalar @open] ||= [map {[$_]} 0 .. $#open];
+	@{$contributors{$name}} = map {$_ || 0} @{$contributors{$name}};
+	$vacant{$name} = \@open;
+	$tuple[scalar @open] ||= [map {[$_]} 0 .. $#open];
     }
 
-for (my $order = 2; $order <= $self->{max_tuple}; $order++) {
-    for (my $inx = 1; $inx < @tuple; $inx++) {
-	next unless $tuple[$inx];
-	my $max = $inx - 1;
-	$tuple[$inx] = [map {my @tpl = @$_;
-	    map {[@tpl, $_]} $tpl[$#tpl] + 1 .. $max}
-	    grep {$_->[@$_ - 1] < $max} @{$tuple[$inx]}];
-	$tuple[$inx] = undef unless @{$tuple[$inx]};
+    for (my $order = 2; $order <= $self->{max_tuple}; $order++) {
+	for (my $inx = 1; $inx < @tuple; $inx++) {
+	    next unless $tuple[$inx];
+	    my $max = $inx - 1;
+	    $tuple[$inx] = [map {my @tpl = @$_;
+		map {[@tpl, $_]} $tpl[-1] + 1 .. $max}
+		grep {$_->[-1] < $max} @{$tuple[$inx]}];
+	    $tuple[$inx] = undef unless @{$tuple[$inx]};
 	}
 
 #	Okay, I have generated the blasted tuples. Now I need to take
@@ -2067,20 +2109,21 @@ for (my $order = 2; $order <= $self->{max_tuple}; $order++) {
 #	so, I have a hidden tuple and can eliminate the superfluous
 #	values.
 
-    foreach my $name (keys %vacant) {
-	my $open = $vacant{$name};
-	next unless $tuple[@$open];
-	my $contributed = $contributors{$name};
-	foreach my $tuple (@{$tuple[@$open]}) {
-	    my @tcontr;	# number of times each value contributed by the tuple.
-	    foreach my $inx (@$tuple) {
-		my $cell = $open->[$inx];
-		for (my $val = 1; $val < $syms; $val++) {
-		    next if $cell->{possible}{$val};
-		    $tcontr[$val]++;
+	foreach my $name (keys %vacant) {
+	    my $open = $vacant{$name};
+	    next unless $tuple[@$open];
+	    my $contributed = $contributors{$name};
+	    foreach my $tuple (@{$tuple[@$open]}) {
+		my @tcontr;	# number of times each value
+				# contributed by the tuple.
+		foreach my $inx (@$tuple) {
+		    my $cell = $open->[$inx];
+		    for (my $val = 1; $val < $syms; $val++) {
+			next if $cell->{possible}{$val};
+			$tcontr[$val]++;
 		    }
 		}
-	    @tcontr = map {$_ || 0} @tcontr;
+		@tcontr = map {$_ || 0} @tcontr;
 
 
 #	At this point, @tcontr contains how many cells in the tuple
@@ -2095,29 +2138,28 @@ for (my $order = 2; $order <= $self->{max_tuple}; $order++) {
 #	corresponding values in @$contributed; if we get a positive
 #	result for any cell, we have an "effective" naked tuple.
 
-	    my $discrete = grep {$_} @tcontr;
-	    my $constraint;
-	    my @tuple_member;
-	    if ($discrete == $order) {
-		for (my $val = 1; $val < @tcontr; $val++) {
-		    next unless $tcontr[$val] &&
-			$contributed->[$val] > $tcontr[$val];
+		my $discrete = grep {$_} @tcontr;
+		my $constraint;
+		my @tuple_member;
+		if ($discrete == $order) {
+		    for (my $val = 1; $val < @tcontr; $val++) {
+			next unless $tcontr[$val] &&
+			    $contributed->[$val] > $tcontr[$val];
 
 #	At this point we know we have an "effective" naked tuple.
 
-		    $constraint ||= ['T', 'naked', $order];
-		    @tuple_member or map {$tuple_member[$_] = 1} @$tuple;
-		    my @ccl;
-		    for (my $inx = 0; $inx < @$open; $inx++) {
-			next if $tuple_member[$inx] ||
-			    $open->[$inx]{possible}{$val};
-			$open->[$inx]{possible}{$val} = 1;
-			--$contributed->[$val];
-			push @ccl, $open->[$inx]{index};
+			$constraint ||= ['T', 'naked', $order];
+			@tuple_member or map {$tuple_member[$_] = 1} @$tuple;
+			my @ccl;
+			for (my $inx = 0; $inx < @$open; $inx++) {
+			    next if $tuple_member[$inx] ||
+				$open->[$inx]{possible}{$val};
+			    $open->[$inx]{possible}{$val} = 1;
+			    --$contributed->[$val];
+			    push @ccl, $open->[$inx]{index};
 			}
-		    push @$constraint, [\@ccl, $val] if @ccl;
+			push @$constraint, [\@ccl, $val] if @ccl;
 		    }
-		}
 
 #	If the number of discrete values is greater than the current
 #	order, we may have a hidden tuple. The test for an "effective"
@@ -2125,76 +2167,78 @@ for (my $order = 2; $order <= $self->{max_tuple}; $order++) {
 #	some way to find a tuple of values within the tuple of cells
 #	which do not occur outside it.
 
-	      elsif ($discrete > $order) {
-		my $within = 0;	# Number of values occuring only within tuple.
-		for (my $val = 1; $val < @tcontr; $val++) {
-		    $within++ if $tcontr[$val] &&
-			$contributed->[$val] == $tcontr[$val];
+		} elsif ($discrete > $order) {
+		    my $within = 0;	# Number of values occuring only
+					# within tuple.
+		    for (my $val = 1; $val < @tcontr; $val++) {
+			$within++ if $tcontr[$val] &&
+			    $contributed->[$val] == $tcontr[$val];
 		    }
-		next unless $within >= $order;
-		$constraint = ['T', 'hidden', $order];
-		map {$tuple_member[$_] = 1} @$tuple;
-		for (my $val = 1; $val < @tcontr; $val++) {
-		    next unless $tcontr[$val] &&
-			$contributed->[$val] > $tcontr[$val];
-		    my @ccl;
-		    for (my $inx = 0; $inx < @$open; $inx++) {
-			next unless $tuple_member[$inx]
-			    && !$open->[$inx]{possible}{$val}
-			    ;
-			$open->[$inx]{possible}{$val} = 1;
-			--$contributed->[$val];
-			--$tcontr[$val];
-			push @ccl, $open->[$inx]{index};
+		    next unless $within >= $order;
+		    $constraint = ['T', 'hidden', $order];
+		    map {$tuple_member[$_] = 1} @$tuple;
+		    for (my $val = 1; $val < @tcontr; $val++) {
+			next unless $tcontr[$val] &&
+			    $contributed->[$val] > $tcontr[$val];
+			my @ccl;
+			for (my $inx = 0; $inx < @$open; $inx++) {
+			    next unless $tuple_member[$inx]
+				&& !$open->[$inx]{possible}{$val}
+				;
+			    $open->[$inx]{possible}{$val} = 1;
+			    --$contributed->[$val];
+			    --$tcontr[$val];
+			    push @ccl, $open->[$inx]{index};
 			}
 
-		    push @$constraint, [\@ccl, $val] if @ccl;
+			push @$constraint, [\@ccl, $val] if @ccl;
 		    }
 		}
 
-	    next unless $constraint;
-	    $self->{debug} and
-		print '#    ', $self->_format_constraint ($constraint);
-	    return [$constraint];
+		next unless $constraint;
+		$self->{debug} and
+		    print '#    ', $self->_format_constraint ($constraint);
+		return [$constraint];
 	    }	# Next tuple
 	}	# Next set containing vacant cells
     }	# Next order
 
-return [];
+    return [];
 }
 
 # ? constraint - initiate backtracking.
 
 sub _constraint_backtrack {
-my $self = shift;
-##--$iterations >= 0 or return $self->_unload ('', SUDOKU_TOO_HARD)
-##    if defined $iterations;
-my @try;
-my $syms = @{$self->{symbol_list}};
-foreach my $cell (@{$self->{cell}}) {
-    next if $cell->{content};
-    next unless @{$cell->{membership}};
-    my $possible = 0;
-    for (my $val = 1; $val < $syms; $val++) {
-	$possible++ unless $cell->{possible}{$val};
+    my $self = shift;
+##  --$iterations >= 0 or return $self->_unload ('', SUDOKU_TOO_HARD)
+##	if defined $iterations;
+    my @try;
+    my $syms = @{$self->{symbol_list}};
+    foreach my $cell (@{$self->{cell}}) {
+	next if $cell->{content};
+	next unless @{$cell->{membership}};
+	my $possible = 0;
+	for (my $val = 1; $val < $syms; $val++) {
+	    $possible++ unless $cell->{possible}{$val};
 	}
-    $possible or return ['backtrack'];
-    push @try, [$cell, $possible];
+	$possible or return ['backtrack'];
+	push @try, [$cell, $possible];
     }
-@try = map {$_->[0]} sort {$a->[1] <=> $b->[1] || $a->[0]{index} <=> $b->[0]{index}} @try;
-my $cell = $try[0];
-for (my $val = 1; $val < $syms; $val++) {
-    next if $cell->{possible}{$val};
-    $self->_try ($cell, $val) and confess <<eod;
+    @try = map {$_->[0]} sort {
+	$a->[1] <=> $b->[1] || $a->[0]{index} <=> $b->[0]{index}} @try;
+    my $cell = $try[0];
+    for (my $val = 1; $val < $syms; $val++) {
+	next if $cell->{possible}{$val};
+	$self->_try ($cell, $val) and confess <<eod;
 Programming error - Value $val illegal in cell $cell->{index} for ? constraint, but
         \$self->{possible}{$val} = $self->{possible}{$val}
 eod
-    my $constraint = ['?' => [$cell->{index}, $val]];
-    $self->{debug} and
-	print '#    ', $self->_format_constraint ($constraint);
-    return [$constraint];
+	my $constraint = ['?' => [$cell->{index}, $val]];
+	$self->{debug}
+	    and print '#    ', $self->_format_constraint ($constraint);
+	return [$constraint];
     }
-return [];
+    return [];
 }
 
 #	$status_value = $su->_constraint_remove ();
@@ -2217,128 +2261,125 @@ return [];
 #		be removed any number of times.
 
 sub _constraint_remove {
-my $self = shift;
-my $min = shift;
-$min and $min = @{$self->{cell}} - $min;
-my $max = shift;
-$max and $max = @{$self->{cell}} - $max;
-my $removal_ok = shift;
-$self->{no_more_solutions} and return SUDOKU_NO_SOLUTION;
-my $stack = $self->{backtrack_stack} or return SUDOKU_NO_SOLUTION;
-my $used = $self->{constraints_used} ||= {};
-my $inx = @$stack;
-my $syms = @{$self->{symbol_list}};
-$self->{debug} && $inx and print <<eod;
+    my $self = shift;
+    my $min = shift;
+    $min and $min = @{$self->{cell}} - $min;
+    my $max = shift;
+    $max and $max = @{$self->{cell}} - $max;
+    my $removal_ok = shift;
+    $self->{no_more_solutions} and return SUDOKU_NO_SOLUTION;
+    my $stack = $self->{backtrack_stack} or return SUDOKU_NO_SOLUTION;
+    my $used = $self->{constraints_used} ||= {};
+    my $inx = @$stack;
+    my $syms = @{$self->{symbol_list}};
+    ($self->{debug} && $inx) and print <<eod;
 # Debug - Backtracking
 eod
-my $old = $inx;
-while (--$inx >= 0) {
-    $min && $self->{cells_unassigned} >= $min and do {
-	$self->{debug} and print <<eod;
+    my $old = $inx;
+    while (--$inx >= 0) {
+	($min && $self->{cells_unassigned} >= $min) and do {
+	    $self->{debug} and print <<eod;
 Debug - Hit minimum occupied cells - returning.
 eod
-	return SUDOKU_SUCCESS;
+	    return SUDOKU_SUCCESS;
 	};
-    my $constraint = $stack->[$inx][0];
-    if ($removal_ok) {
-	$max && $self->{cells_unassigned} <= $max &&
-##	    && !$removal_ok->{$constraint} and next;
-	    !exists $removal_ok->{$constraint} and next;
+	my $constraint = $stack->[$inx][0];
+	if ($removal_ok) {
+	    ($max && $self->{cells_unassigned} <= $max &&
+##		!$removal_ok->{$constraint} and next;
+		!exists $removal_ok->{$constraint}) and next;
 
-	if (!exists $removal_ok->{$constraint}) {
-	    $self->{debug} and print <<eod;
+	    if (!exists $removal_ok->{$constraint}) {
+		$self->{debug} and print <<eod;
 Debug - Encountered constraint $constraint - returning.
 eod
-	    return SUDOKU_SUCCESS;
-	    }
-	  elsif (defined $removal_ok->{$constraint} &&
-		--$removal_ok->{$constraint}) {
-	    $self->{debug} and print <<eod;
+		return SUDOKU_SUCCESS;
+	    } elsif (defined $removal_ok->{$constraint} &&
+		    --$removal_ok->{$constraint}) {
+		$self->{debug} and print <<eod;
 Debug - Reached usage limit on $constraint - returning.
 eod
-	    return SUDOKU_SUCCESS;
+		return SUDOKU_SUCCESS;
 	    }
+	} else {
+	    ($max && $self->{cells_unassigned} <= $max &&
+		$constraint eq '?')
+		and next;
 	}
-      else {
-	$max && $self->{cells_unassigned} <= $max && $constraint eq '?'
-	    and next;
-	}
-    --$used->{$constraint};
-    if ($constraint eq 'F' || $constraint eq 'N') {
-	foreach my $ref (reverse @{$stack->[$inx]}) {
-	    $self->_try ($ref->[0], 0) if ref $ref;
+	--$used->{$constraint};
+	if ($constraint eq 'F' || $constraint eq 'N') {
+	    foreach my $ref (reverse @{$stack->[$inx]}) {
+		$self->_try ($ref->[0], 0) if ref $ref;
 	    }
-	}
-      elsif ($constraint eq 'B' || $constraint eq 'T') {
-	foreach my $ref (reverse @{$stack->[$inx]}) {
-	    next unless ref $ref;
-	    my $val = $ref->[1];
-	    foreach my $inx (@{$ref->[0]}) {
-		$self->{cell}[$inx]{possible}{$val} = 0;
+	} elsif ($constraint eq 'B' || $constraint eq 'T') {
+	    foreach my $ref (reverse @{$stack->[$inx]}) {
+		next unless ref $ref;
+		my $val = $ref->[1];
+		foreach my $inx (@{$ref->[0]}) {
+		    $self->{cell}[$inx]{possible}{$val} = 0;
 		}
 	    }
-	}
-      elsif ($constraint eq '?') {
-	my $start = $stack->[$inx][1][1] + 1;
-	my $cell = $self->{cell}[$stack->[$inx][1][0]];
-	$self->_try ($cell, 0);
-	next if $removal_ok;
-	for (my $val = $start; $val < $syms; $val++) {
-	    next if $cell->{possible}{$val};
-		$self->_try ($cell, $val) and confess <<eod;
+	} elsif ($constraint eq '?') {
+	    my $start = $stack->[$inx][1][1] + 1;
+	    my $cell = $self->{cell}[$stack->[$inx][1][0]];
+	    $self->_try ($cell, 0);
+	    next if $removal_ok;
+	    for (my $val = $start; $val < $syms; $val++) {
+		next if $cell->{possible}{$val};
+		    $self->_try ($cell, $val) and confess <<eod;
 Programming error - Try of $val in cell $cell->{index} failed, but
         \$cell->{possible}[$inx] = $cell->{possible}[$inx]
 eod
-	    $used->{$constraint}++;
-	    $stack->[$inx][1][0] = $cell->{index};
-	    $stack->[$inx][1][1] = $val;
-	    $self->{debug} and do {
-		my $x = $self->_format_constraint ($stack->[$inx]);
-		chomp $x;
-		print <<eod;
+		$used->{$constraint}++;
+		$stack->[$inx][1][0] = $cell->{index};
+		$stack->[$inx][1][1] = $val;
+		$self->{debug} and do {
+		    my $x = $self->_format_constraint ($stack->[$inx]);
+		    chomp $x;
+		    print <<eod;
 # Debug - Backtrack complete. @{[$old - @$stack]} constraints removed.
 #         Resuming puzzle at stack depth @{[$inx + 1]} with
 #         $self->{cells_unassigned} unassigned cells, guessing
 #         $x
 eod
 		};
-	    return SUDOKU_SUCCESS;
+		return SUDOKU_SUCCESS;
 	    }
-	}
-      else {confess <<eod}
+	} else {confess <<eod
 Programming Error - No code provided to remove constraint '$constraint' from stack.
 eod
-    pop @$stack;
+	}
+	pop @$stack;
     }
-$self->{debug} and print <<eod;
+    $self->{debug} and print <<eod;
 # Debug - Backtrack complete. @{[$old - @$stack]} constraints removed.
 #         No more solutions to the puzzle exist.
 eod
-$self->{no_more_solutions} = 1;
-return SUDOKU_NO_SOLUTION;
+    $self->{no_more_solutions} = 1;
+    return SUDOKU_NO_SOLUTION;
 }
 
 #	_format_constraint formats the given constraint for output.
 
 sub _format_constraint {
-my $self = shift;
-my @steps;
-foreach (@_) {
-    my @stuff;
-    foreach (@$_) {
-	last unless $_;
-	push @stuff, ref $_ ?
-	    '[' . join (' ',
-		ref $_->[0] ? '[' . join (', ', @{$_->[0]}) . ']' : $_->[0],
-		ref $_->[1] ? '[' . join (', ',
-		    map {$self->{symbol_list}[$_]} @{$_->[1]}) . ']' :
-		    $self->{symbol_list}[$_->[1]],
-		    ) . ']' :
-	    $_;
+    my ($self, @args) = @_;
+    my @steps;
+    foreach (@args) {
+	my @stuff;
+	foreach (@$_) {
+	    last unless $_;
+	    push @stuff, ref $_ ?
+		'[' . join (' ',
+		    ref $_->[0] ? '[' . join (', ', @{$_->[0]}) . ']' : $_->[0],
+		    ref $_->[1] ? '[' . join (', ',
+			map {$self->{symbol_list}[$_]} @{$_->[1]}) . ']' :
+			$self->{symbol_list}[$_->[1]],
+			) . ']' :
+		$_;
 	}
-    push @steps, join (' ', @stuff) . "\n";
+	push @steps, join (' ', @stuff) . "\n";
     }
-join '', @steps;
+    return join '', @steps;
 }
 
 #	_looks_like_number is cribbed heavily from
@@ -2348,10 +2389,10 @@ join '', @steps;
 #	looks_like_number.
 
 sub _looks_like_number {
-local $_ = shift;
-return 0 if !defined ($_) or ref ($_);
-return 1 if m/^[+-]?\d+$/;
-return 0;
+    local $_ = shift;
+    return 0 if !defined ($_) || ref ($_);
+    return 1 if m/^[+-]?\d+$/;
+    return 0;
 }
 
 
@@ -2368,44 +2409,44 @@ return 0;
 #	does not undo the trial.
 
 sub _try {
-my $self = shift;
-my $cell = shift;
-$cell = $self->{cell}[$cell] unless ref $cell;
-defined (my $new = shift) or _fatal (
-    "_try called for cell $cell->{index} with new value undefined");
-defined (my $old = $cell->{content}) or _fatal (
-    "_try called with old cell $cell->{index} value undefined");
-my $rslt = eval {
-    return 0 if $old == $new;
-    if ($new) {
-	foreach my $set (@{$cell->{membership}}) {
-	    return 1 if $self->{set}{$set}{content}[$new];
+    my $self = shift;
+    my $cell = shift;
+    $cell = $self->{cell}[$cell] unless ref $cell;
+    defined (my $new = shift) or _fatal (
+	"_try called for cell $cell->{index} with new value undefined");
+    defined (my $old = $cell->{content}) or _fatal (
+	"_try called with old cell $cell->{index} value undefined");
+    my $rslt = eval {
+	return 0 if $old == $new;
+	if ($new) {
+	    foreach my $set (@{$cell->{membership}}) {
+		return 1 if $self->{set}{$set}{content}[$new];
 	    }
 	}
-    $cell->{content} = $new;
-    $old and $self->{cells_unassigned}++;
-    $new and --$self->{cells_unassigned};
-    foreach my $name (@{$cell->{membership}}) {
-	my $set = $self->{set}{$name};
-	--$set->{content}[$old];
-	$old and do {
-	    $set->{free}++;
-	    foreach (@{$set->{membership}}) {
-		--$self->{cell}[$_]{possible}{$old};
+	$cell->{content} = $new;
+	$old and $self->{cells_unassigned}++;
+	$new and --$self->{cells_unassigned};
+	foreach my $name (@{$cell->{membership}}) {
+	    my $set = $self->{set}{$name};
+	    --$set->{content}[$old];
+	    $old and do {
+		$set->{free}++;
+		foreach (@{$set->{membership}}) {
+		    --$self->{cell}[$_]{possible}{$old};
 		}
 	    };
-	$set->{content}[$new]++;
-	$new and do {
-	    --$set->{free};
-	    foreach (@{$set->{membership}}) {
-		$self->{cell}[$_]{possible}{$new}++;
+	    $set->{content}[$new]++;
+	    $new and do {
+		--$set->{free};
+		foreach (@{$set->{membership}}) {
+		    $self->{cell}[$_]{possible}{$new}++;
 		}
 	    };
 	}
-    return 0;
+	return 0;
     };
-$@ and _fatal ("Eval failed in _try", $@);
-$rslt;
+    $@ and _fatal ("Eval failed in _try", $@);
+    return $rslt;
 }
 
 
@@ -2418,34 +2459,38 @@ $rslt;
 #	the current cell contents are ignored.
 
 sub _unload {
-my $self = shift;
-my $prefix = shift || '';
-@_ and do {$self->set (status_value => $_[0]); $_[0] and return undef};
-my $rslt = '';
-my $col = $self->{columns};
-my $row = $self->{rows} ||= floor (@{$self->{cell}} / $col);
-my $fmt = "%$self->{biggest_symbol}s";
-foreach (@{$self->{cell}}) {
-    $col == $self->{columns} and $rslt .= $prefix;
-    # was $self->{ignore_unused}
-    $rslt .= ($self->{cells_unused} && !@{$_->{membership}}) ?
-	sprintf ($fmt, ' ') :
-	sprintf ($fmt, $self->{symbol_list}[$_->{content} || 0]);
-    if (--$col > 0) {$rslt .= $self->{output_delimiter}}
-      else {
+    my ($self, $prefix, @args) = @_;
+    defined $prefix or $prefix = '';
+    @args and do {
+	$self->set (status_value => $args[0]);
+	$args[0] and return;
+    };
+    my $rslt = '';
+    my $col = $self->{columns};
+    my $row = $self->{rows} ||= floor (@{$self->{cell}} / $col);
+    my $fmt = "%$self->{biggest_symbol}s";
+    foreach (@{$self->{cell}}) {
+	$col == $self->{columns} and $rslt .= $prefix;
 	# was $self->{ignore_unused}
-	$self->{cells_unused} and $rslt =~ s/\s+$//m;
-	$rslt .= "\n";
-	$col = $self->{columns};
-	if (--$row <= 0) {
+	$rslt .= ($self->{cells_unused} && !@{$_->{membership}}) ?
+	    sprintf ($fmt, ' ') :
+	    sprintf ($fmt, $self->{symbol_list}[$_->{content} || 0]);
+	if (--$col > 0) {
+	    $rslt .= $self->{output_delimiter}
+	} else {
+	    # was $self->{ignore_unused}
+	    $self->{cells_unused} and $rslt =~ s/\s+$//m;
 	    $rslt .= "\n";
-	    $row = $self->{rows};
+	    $col = $self->{columns};
+	    if (--$row <= 0) {
+		$rslt .= "\n";
+		$row = $self->{rows};
 	    }
 	}
     }
-0 while chomp $rslt;
-$rslt .= "\n";
-return $rslt;
+    0 while chomp $rslt;
+    $rslt .= "\n";
+    return $rslt;
 }
 
 1;
@@ -2523,97 +2568,49 @@ column for September 5 2005
 (L<http://www.maa.org/editorial/mathgames/mathgames_09_05_05.html>)
 provided a treasure trove of 'non-standard' Sudoku puzzles.
 
-=head1 MODIFICATIONS
-
- 0.001 T. R. Wyant
-   Initial release to CPAN.
- 0.002 T. R. Wyant
-   Format solution nicely for multi-character symbols.
-   Fixed error in values eliminated by a hidden tuple.
-   Recoded 'set sudokug' in terms of 'set brick', thus
-     fixing an error in generating the small squares.
-   Added method add_set(), and recoded 'set sudokux' in
-     terms of this and 'set sudokug', thus fixing the
-     same error that 'set sudoku' had.
-   Put spaces in the result of scalar constraints_used.
-   Spiffed up the POD.
- 0.003 T. R. Wyant
-   Added 'set corresponding' and 'set max_tuple'.
-   Added cubic sudoku (via 'set cube').
-   Fixed horrendous inefficiency in backtrack logic.
- 0.004 T. R. Wyant
-   Added Dion cube (via 'set cube number').
- 0.005 T. R. Wyant
-   Added generate() method and generation_limit
-       attribute.
-   Added rows attribute. This changes the default
-       output for 'multi-faced' puzzles.
- 0.006 T. R. Wyant
-   Fixed problem with 'set corresponding'. Thanks
-       to David Jelinek of Central Michigan University
-       for diagnosing the problem and finding a
-       solution.
-   Corrected spelling.
-   Eliminated Scalar::Util::looks_like_number, since
-       apparently ActivePerl does not have it.
-   Add copy() method and autocopy attribute, for getting
-       generated puzzles onto the clipboard.
-   Add paste() method, for loading puzzles from the
-       clipboard.
-   Add unload() method.
- 0.007 T. R. Wyant
-   Corrected example in topology attribute documentation,
-     and other documentation tweaks.
-   Moved General.pm to lib/Games/Sudoku.
-   Added Build.PL
- 0.008 T. R. Wyant
-   Tweak docs.
-   Support unused cells.
-   Add drop_set() method to undo add_set().
-   Add 'null' attribute to generate a puzzle with no topology.
-   Add 'quincunx' attribute to generate a quincunx (a.k.a.
-     'Samurai Sudoku')
- 0.009 T. R. Wyant
-   'use 5.006', for 'our' at the very least.
-   Update 'SEE ALSO'
-   add =head1 LICENSE to POD.
- 0.010 T. R. Wyant
-   Fixed Build.PL to heed -y and -n options.
-
 =head1 SEE ALSO
 
-The Games-Sudoku package by Eugene Kulesha (see
+The C<Games-LogicPuzzle> package by Andy Adler (see
+L<http://search.cpan.org/dist/Games-LogicPuzzle/>) solves all sorts of
+combinatorial puzzles, by backtracking through the puzzle space and
+applying a user-supplied function to see whether it has a valid
+solution. The examples include a couple Sudoku puzzles.
+
+The C<Games-Sudoku> package by Eugene Kulesha (see
 L<http://search.cpan.org/dist/Games-Sudoku/>) solves the standard 9x9
 version of the puzzle.
 
-The Games-Sudoku-Component package by Kenichi Ishigaki (see
+The C<Games-Sudoku-Component> package by Kenichi Ishigaki (see
 L<http://search.cpan.org/dist/Games-Sudoku-Component/>) both
 generates and solves the standard 9x9 version of the puzzle.
 
-The Games-Sudoku-Component-TkPlayer by Kenichi Ishigaki (see
+The C<Games-Sudoku-Component-TkPlayer> by Kenichi Ishigaki (see
 L<http://search.cpan.org/dist/Games-Sudoku-Component-TkPlayer/>). Tk
 front end for his Games-Sudoku-Component.
 
-The Games-Sudoku-CPSearch package by Martin-Louis Bright (see
+The C<Games-Sudoku-CPSearch> package by Martin-Louis Bright (see
 L<http://search.cpan.prg/dist/Games-Sudoku-CPSearch/>). Solves 9x9
 Sudoku by use of "F" and "N" constraints and backtracking.
 
-The Games-Sudoku-Lite package by Bob O'Neill (see
+The C<Games-Sudoku-Lite package> by Bob O'Neill (see
 L<http://search.cpan.org/dist/Games-Sudoku-Lite/>) solves the standard
 9x9 version of the puzzle.
 
-The Games-Sudoku-OO package by Michael Cope (see
+The C<Games-Sudoku-OO> package by Michael Cope (see
 L<http://search.cpan.org/dist/Games-Sudoku-OO/>) also solves the
 standard 9x9 version of the puzzle, with an option to solve (to the
 extent possible) a single row, column, or square. The implementation may
 be extensible to other topologies than the standard one.
 
-The Games-Sudoku-SudokuTk package by Christian Guine (see
-L<http://search.cpan.org/dist/Games-Sudoku-SudokuTk/> claims to
-implement a Tk-based Sudoku solver, but as of version 0.05 the
-kit seems to be incomplete.
+The C<Games-Sudoku-Solver> package by Fritz Mehner (see
+L<http://search.cpan.org/dist/Games-Sudoku-Solver/>) solves 9x9 Sudoku
+puzzles by recursion and backtracking.
 
-The Games-YASudoku package by Andrew Wyllie (see
+The C<Games-Sudoku-SudokuTk> package by Christian Guine (see
+L<http://search.cpan.org/dist/Games-Sudoku-SudokuTk/> claims to
+implement a Tk-based Sudoku solver.
+
+The C<Games-YASudoku> package by Andrew Wyllie (see
 L<http://search.cpan.org/dist/Games-YASudoku/>) also solves the standard
 9x9 version of the puzzle. In contrast to the other packages, this one
 represents the board as a list of cell/value pairs.
@@ -2622,16 +2619,17 @@ represents the board as a list of cell/value pairs.
 
 Thomas R. Wyant, III (F<wyant at cpan dot org>)
 
-=head1 COPYRIGHT
+=head1 COPYRIGHT AND LICENSE
 
-Copyright 2005, 2006, 2008 by Thomas R. Wyant, III
-(F<wyant at cpan dot org>). All rights reserved.
+Copyright (C) 2005, 2006, 2008, 2011 by Thomas R. Wyant, III
 
-=head1 LICENSE
+This program is free software; you can redistribute it and/or modify it
+under the same terms as Perl 5.10.0. For more details, see the full text
+of the licenses in the directory LICENSES.
 
-This module is free software; you can use it, redistribute it and/or
-modify it under the same terms as Perl itself. Please see
-L<http://perldoc.perl.org/index-licence.html> for the current licenses.
+This program is distributed in the hope that it will be useful, but
+without any warranty; without even the implied warranty of
+merchantability or fitness for a particular purpose.
 
 =cut
 
@@ -2680,3 +2678,5 @@ L<http://perldoc.perl.org/index-licence.html> for the current licenses.
 #  A {symbol_list} = []		# A list of the symbols used, in order
 #				# by the values used internally.
 #  A {symbol_number}		# Number of symbols defined.
+
+# ex: set textwidth=72 :

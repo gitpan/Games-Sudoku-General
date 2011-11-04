@@ -10,7 +10,6 @@ use Getopt::Long;
 use Pod::Usage;
 use Term::ReadLine;
 use Text::ParseWords;
-use UNIVERSAL qw{can};
 
 my %opt;
 
@@ -27,7 +26,7 @@ where the only valid option at the moment is
 
 eod
 
-our $VERSION = '0.007';
+our $VERSION = '0.010_90';
 
 my $rdln = Term::ReadLine->new ('Solve Sudoku and other set-allocation puzzles');
 my $OUT = $rdln->OUT || \*STDOUT;
@@ -39,7 +38,7 @@ Perl $Config{version} under $Config{osname}
 
 Solve Sudoku and other set-allocation puzzles.
 
-Copyright 2005, 2006, 2008 by Thomas R. Wyant, III. All rights reserved.
+Copyright (C) 2005, 2006, 2008, 2011 by Thomas R. Wyant, III
 
 Enter 'help' for help, and terms of use.
 
@@ -70,7 +69,7 @@ while (1) {
     my @args = parse_line ('\s+', 0, $_);
     my $verb = lc shift @args;
     $verb = $synonym{$verb} if $synonym{$verb};
-    @args = map {m/^<<(.+)/ ? _here_document ($1) : $_} @args;
+    @args = map {m/^<<(.+)/ ? _here_document ($1 . '') : $_} @args;
     last if $verb eq 'exit';
     eval {
 	if ($verb =~ m/\W/ || $verb =~ m/^_/ || $verb eq 'new') {
@@ -78,12 +77,10 @@ while (1) {
 Warning - Verb '$verb' is not recognized. Enter 'help' for help.
 eod
 	    }
-	  elsif (can (__PACKAGE__, $verb)) {
-	    no strict qw{refs};
-	    &$verb (@args);
-	    use strict qw{refs};
+	  elsif (my $code = __PACKAGE__->can($verb)) {
+	    $code->(@args);
 	    }
-	  elsif (can ($su, $verb)) {
+	  elsif (eval {$su->can($verb)}) {
 	    my $rslt = $su->$verb (@args);
 	    print "$rslt\n" if defined $rslt && !ref $rslt;
 	    }
@@ -92,31 +89,18 @@ eod
 Warning - Verb '$verb' is not recognized. Enter 'help' for help.
 eod
 	    }
-	};
-    $@ and warn $@;
+	1;
+	} or warn $@;
     }
 
-sub dump {
-use Data::Dumper;
-local $Data::Dumper::Terse = 1;
-print "Dump of the current Games::Sudoku::General object:\n", Dumper ($su);
+sub dump {	## no critic (ProhibitBuiltInHomonyms)
+    use Data::Dumper;
+    local $Data::Dumper::Terse = 1;
+    print "Dump of the current Games::Sudoku::General object:\n", Dumper ($su);
+    return;
 }
 
 sub get {
-
-=begin comment
-
-my @rslt = $su->get (@_);
-for (my $inx = 0; $inx < @_; $inx++) {
-    print $rslt[$inx] =~ m/\n/s ?
-	"$_[$inx]:\n$rslt[$inx]\n" :
-	"$_[$inx]: $rslt[$inx]\n\n";
-    }
-
-=end comment
-
-=cut
-
     foreach my $name (@_) {
 	local $_  = exists $parm{$name} ? $parm{$name} : $su->get($name);
 	if (!defined $_) {
@@ -127,22 +111,25 @@ for (my $inx = 0; $inx < @_; $inx++) {
 	    print "$name: $_\n\n";
 	}
     }
-
+    return;
 }
 
 sub help {
     if (my $cmd = $parm{webcmd}) {
-	system {$cmd} $cmd, 'http://search.cpan.org/dist/Games-Sudoku-General/';
+	system {$cmd} $cmd,
+	    'http://search.cpan.org/dist/Games-Sudoku-General/';
     } else {
-    my $os_specific = "_help_$^O";
-    __PACKAGE__->can ($os_specific) ? __PACKAGE__->$os_specific :
-    pod2usage (-verbose => 2, -exitval => 'NOEXIT',
-	$_[0] && $_[0] eq 'lib' ? (-input => $INC{'Games/Sudoku/General.pm'}) : ());
+	my $os_specific = "_help_$^O";
+	__PACKAGE__->can ($os_specific) ? __PACKAGE__->$os_specific :
+	    pod2usage (-verbose => 2, -exitval => 'NOEXIT',
+		($_[0] && $_[0] eq 'lib') ? (
+		    -input => $INC{'Games/Sudoku/General.pm'}) : ());
     }
+    return;
 }
 
 sub _help_MacOS {
-print <<eod;
+    print <<eod;
 
 Normally, we would display the documentation for the sudokug
 script here. But unfortunately this depends on the ability to
@@ -152,6 +139,7 @@ http://search.cpan.org/~wyant/Games-Sudoku-General-@{[
     Games::Sudoku::General->VERSION]}/bin/sudokug
 
 eod
+    return;
 }
 
 sub set {
@@ -163,39 +151,44 @@ sub set {
 	    $su->set ($name, shift);
 	}
     }
+    return;
 }
 
 sub solution {
-my $rslt = $su->solution () || ($su->get ('status_text'));
-chomp $rslt;
-print "$rslt\n";
+    my $rslt = $su->solution () || ($su->get ('status_text'));
+    chomp $rslt;
+    print "$rslt\n";
+    return;
 }
 
 sub source {
-my $fn = shift;
-my $fh = FileHandle->new ("<$fn") or die <<eod;
+    my $fn = shift;
+    my $fh = FileHandle->new ("<$fn") or die <<eod;
 Error - Failed to open input file $fn.
         $!
 eod
-unshift @handles, $fh;
+    return unshift @handles, $fh;
 }
 
 sub _acquire_line {
-my $prompt = shift || 'sudokug> ';
-my $rslt = @handles ? $handles[0]->getline() : -t STDIN ? $rdln->readline ($prompt) : <STDIN>;
-defined $rslt and chomp $rslt;
-$rslt;
+    my $prompt = shift || 'sudokug> ';
+    my $rslt = @handles ? $handles[0]->getline() :
+	-t STDIN ?
+	    $rdln->readline ($prompt) :
+	    <STDIN>;
+    defined $rslt and chomp $rslt;
+    return $rslt;
 }
 
 sub _here_document {
-my $tag = shift;
-my $rslt = '';
-while (defined (my $data = _acquire_line ("$tag: "))) {
-    last if $data eq $tag;
-    $rslt .= $data;
-    $rslt .= "\n";
+    my $tag = shift;
+    my $rslt = '';
+    while (defined (my $data = _acquire_line ("$tag: "))) {
+	last if $data eq $tag;
+	$rslt .= $data;
+	$rslt .= "\n";
     }
-$rslt;
+    return $rslt;
 }
 
 __END__
@@ -667,33 +660,22 @@ preferred browser.
 
 =back
 
-=head1 MODIFICATIONS
-
- 0.001 T. R. Wyant
-   Initial release
- 0.003 T. R. Wyant
-   Documented methods and attributes added
-   since 0.001.
- 0.004 T. R. Wyant - Documented new use of cube attribute.
- 0.005 T. R. Wyant - Documented new methods and attributes.
- 0.006 T. R. Wyant
-   Corrected spelling.
-   Allowed input to be redirected or piped in.
-   Added -filter option.
-   Document new methods and attributes.
- 0.007 T. R. Wyant
-   Added the 'webcmd' pseudo-attribute.
-   Small documentation tweaks.
-   Fix the 'source' command.
-
 =head1 AUTHOR
 
 Thomas R. Wyant, III (F<wyant at cpan dot org>)
 
-=head1 COPYRIGHT
+=head1 COPYRIGHT AND LICENSE
 
-Copyright 2005, 2006, 2008 by Thomas R. Wyant, III
-(F<wyant at cpan dot org>). All rights reserved.
+Copyright (C) 2005, 2006, 2008, 2011 by Thomas R. Wyant, III
 
-This module is free software; you can use it, redistribute it
-and/or modify it under the same terms as Perl itself.
+This program is free software; you can redistribute it and/or modify it
+under the same terms as Perl 5.10.0. For more details, see the full text
+of the licenses in the directory LICENSES.
+
+This program is distributed in the hope that it will be useful, but
+without any warranty; without even the implied warranty of
+merchantability or fitness for a particular purpose.
+
+=cut
+
+# ex: set textwidth=72 :

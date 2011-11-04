@@ -1,5 +1,8 @@
 #!/usr/local/bin/perl
 
+use strict;
+use warnings;
+
 #	This is about the simplest solver I can come up with
 
 use Games::Sudoku::General;

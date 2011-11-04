@@ -1,3 +1,112 @@
-For changes, see the documentation to Games::Sudoku::General.
+ 0.010_90	T. R. Wyant	04-Nov-2011
+   'use 5.006002', since that is the oldest Perl I can build.
+   Eliminate calls to UNIVERSAL::can as a function.
+   Load optional module Win32::Clipboard by file name, mostly so code
+      analyzers do not see it as an undeclared dependency.
+   Require Test::More for testing.
+   Add tests for POD and Perl::Critic, and for file presence and
+      executability.
+   Author testing is now by the authortest target, which requires
+      building via Build.PL. Author testing is no longer supported when
+      building via Makefile.PL.
+   Moved the modification log from the module POD to the Changes file.
+   Revise copyright and license statement.
 
+ 0.010		T. R. Wyant	14-Sep-2008
+   Fixed Build.PL to heed -y and -n options.
 
+ 0.009		T. R. Wyant	21-Jul-2008
+   'use 5.006', for 'our' at the very least.
+   Update 'SEE ALSO'
+   add =head1 LICENSE to POD.
+
+ 0.008		T. R. Wyant	09-May-2008
+   Tweak docs.
+   Support unused cells.
+   Add drop_set() method to undo add_set().
+   Add 'null' attribute to generate a puzzle with no topology.
+   Add 'quincunx' attribute to generate a quincunx (a.k.a.
+     'Samurai Sudoku')
+
+ 0.007		T. R. Wyant	30-Sep-2006
+   Corrected example in topology attribute documentation,
+     and other documentation tweaks.
+   Moved General.pm to lib/Games/Sudoku.
+   Added Build.PL
+   In bin/sudokug, added the 'webcmd' pseudo-attribute and fixed the
+     'source' command.
+
+ 0.006		T. R. Wyant	03-Jul-2006
+   Fixed problem with 'set corresponding'. Thanks
+       to David Jelinek of Central Michigan University
+       for diagnosing the problem and finding a
+       solution.
+   Corrected spelling.
+   Eliminated Scalar::Util::looks_like_number, since
+       apparently ActivePerl does not have it.
+   Add copy() method and autocopy attribute, for getting
+       generated puzzles onto the clipboard.
+   Add paste() method, for loading puzzles from the
+       clipboard.
+   Add unload() method.
+   In bin/sudokug, allowed input to be redirected or piped in, and added
+       -filter option.
+
+ 0.005		T. R. Wyant	20-Dec-2005
+   Added generate() method and generation_limit
+       attribute.
+   Added rows attribute. This changes the default
+       output for 'multi-faced' puzzles.
+
+ 0.004		T. R. Wyant	16-Dec-2005
+   Added Dion cube (via 'set cube number').
+
+ 0.003		T. R. Wyant	13-Dec-2005
+   Added 'set corresponding' and 'set max_tuple'.
+   Added cubic sudoku (via 'set cube').
+   Fixed horrendous inefficiency in backtrack logic.
+
+ 0.002		T. R. Wyant	11-Dec-2005
+   Format solution nicely for multi-character symbols.
+   Fixed error in values eliminated by a hidden tuple.
+   Recoded 'set sudokug' in terms of 'set brick', thus
+     fixing an error in generating the small squares.
+   Added method add_set(), and recoded 'set sudokux' in
+     terms of this and 'set sudokug', thus fixing the
+     same error that 'set sudoku' had.
+   Put spaces in the result of scalar constraints_used.
+   Spiffed up the POD.
+
+ 0.001		T. R. Wyant	09-Dec-2005
+   Initial release to CPAN.
+
+Index: bin/sudokug
+===================================================================
+--- bin/sudokug	(revision 2610)
++++ bin/sudokug	(working copy)
+@@ -660,25 +660,6 @@
+ 
+ =back
+ 
+-=head1 MODIFICATIONS
+-
+- 0.001 T. R. Wyant
+-   Initial release
+- 0.003 T. R. Wyant
+-   Documented methods and attributes added
+-   since 0.001.
+- 0.004 T. R. Wyant - Documented new use of cube attribute.
+- 0.005 T. R. Wyant - Documented new methods and attributes.
+- 0.006 T. R. Wyant
+-   Corrected spelling.
+-   Allowed input to be redirected or piped in.
+-   Added -filter option.
+-   Document new methods and attributes.
+- 0.007 T. R. Wyant
+-   Added the 'webcmd' pseudo-attribute.
+-   Small documentation tweaks.
+-   Fix the 'source' command.
+-
+ =head1 AUTHOR
+ 
+ Thomas R. Wyant, III (F<wyant at cpan dot org>)
