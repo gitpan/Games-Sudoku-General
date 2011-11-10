@@ -1,3 +1,6 @@
+ 0.011		T. R. Wyant	10-Nov-2011
+   No changes from 0.010_90, except for version.
+
  0.010_90	T. R. Wyant	04-Nov-2011
    'use 5.006002', since that is the oldest Perl I can build.
    Eliminate calls to UNIVERSAL::can as a function.
