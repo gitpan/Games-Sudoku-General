@@ -39,7 +39,7 @@
    "provides" : {
       "Games::Sudoku::General" : {
          "file" : "lib/Games/Sudoku/General.pm",
-         "version" : "0.011"
+         "version" : "0.012"
       }
    },
    "release_status" : "stable",
@@ -51,5 +51,5 @@
          "http://dev.perl.org/licenses/"
       ]
    },
-   "version" : "0.011"
+   "version" : "0.012"
 }
