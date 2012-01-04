@@ -19,6 +19,7 @@ README.MSWin32
 README.VMS
 t/basic.t
 t/sudoku.t
+xt/author/changes.t
 xt/author/critic.t
 xt/author/executable.t
 xt/author/manifest.t
