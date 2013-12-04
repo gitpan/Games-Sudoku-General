@@ -5,7 +5,7 @@ author:
 build_requires:
   Test::More: 0.88
 dynamic_config: 1
-generated_by: 'Module::Build version 0.38, CPAN::Meta::Converter version 2.113640'
+generated_by: 'Module::Build version 0.4203, CPAN::Meta::Converter version 2.132830'
 license: perl
 meta-spec:
   url: http://module-build.sourceforge.net/META-spec-v1.4.html
@@ -19,7 +19,7 @@ no_index:
 provides:
   Games::Sudoku::General:
     file: lib/Games/Sudoku/General.pm
-    version: 0.013
+    version: 0.014
 requires:
   Carp: 0
   constant: 0
@@ -29,4 +29,4 @@ requires:
 resources:
   bugtracker: https://rt.cpan.org/Public/Dist/Display.html?Name=Games-Sudoku-General
   license: http://dev.perl.org/licenses/
-version: 0.013
+version: 0.014

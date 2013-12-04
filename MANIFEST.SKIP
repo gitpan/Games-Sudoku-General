@@ -5,6 +5,8 @@
 ^cover_db/
 CVS/
 ^foo
+^.git/
+^.gitignore$
 ^Games-Sudoku-General
 ^Makefile$
 ^MANIFEST\.
