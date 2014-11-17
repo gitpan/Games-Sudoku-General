@@ -3,13 +3,13 @@ abstract: 'Solve Sudoku and related puzzles'
 author:
   - 'Tom Wyant (wyant at cpan dot org)'
 build_requires:
-  Test::More: 0.88
+  Test::More: '0.88'
 dynamic_config: 1
-generated_by: 'Module::Build version 0.4203, CPAN::Meta::Converter version 2.132830'
+generated_by: 'Module::Build version 0.421, CPAN::Meta::Converter version 2.142690'
 license: perl
 meta-spec:
   url: http://module-build.sourceforge.net/META-spec-v1.4.html
-  version: 1.4
+  version: '1.4'
 name: Games-Sudoku-General
 no_index:
   directory:
@@ -19,14 +19,14 @@ no_index:
 provides:
   Games::Sudoku::General:
     file: lib/Games/Sudoku/General.pm
-    version: 0.014
+    version: '0.015'
 requires:
-  Carp: 0
-  constant: 0
-  perl: 5.006002
-  strict: 0
-  warnings: 0
+  Carp: '0'
+  constant: '0'
+  perl: '5.006002'
+  strict: '0'
+  warnings: '0'
 resources:
   bugtracker: https://rt.cpan.org/Public/Dist/Display.html?Name=Games-Sudoku-General
   license: http://dev.perl.org/licenses/
-version: 0.014
+version: '0.015'

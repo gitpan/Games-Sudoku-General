@@ -1,3 +1,9 @@
+0.015		2014-11-16	T. R. Wyant
+   As of 2015-07-01, Makefile.PL and Build.PL will no longer prompt the
+     user about installing sudokug, but default to installing it. The -n
+     option will still suppress the installation. Also, the OS-specific
+     functionality in these files will be removed.
+
 0.014		2013-12-03	T. R. Wyant
    No code changes - just test tweaks.
 
@@ -94,3 +100,5 @@
 
 0.001		2005-12-09	T. R. Wyant
    Initial release to CPAN.
+
+# ex: set textwidth=72 :

@@ -69,6 +69,14 @@ Unless you are running MSWin32 or VMS (which are special-cased),
 I will assume you're running some version of U*ix, and behave
 accordingly.
 
+>>>> NOTICE <<<<
+
+Beginning with the first release after July 1 2015, sudokug will be
+installed by default. If you do not want it installed, provide the -n
+option when you run Build.PL.
+
+I also intend to get rid of the OS-specific ad-hocery at this point.
+
 EOD
 
 
@@ -126,3 +134,4 @@ $bldr->script_files (\@exe_files);
 
 $bldr->create_build_script ();
 
+# ex: set textwidth=72 :

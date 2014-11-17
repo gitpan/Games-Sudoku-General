@@ -37,6 +37,14 @@ accordingly.
 If you do not want this executable installed, rerun this script
 with the -n qualifier.
 
+>>>> NOTICE <<<<
+
+Beginning with the first release after July 1 2015, sudokug will be
+installed by default. If you do not want it installed, provide the -n
+option when you run Makefile.PL.
+
+I also intend to get rid of the OS-specific ad-hocery at this point.
+
 EOD
 
 if ($opt{n}) {
@@ -126,3 +134,5 @@ $mmv >= 6.5501
     and $attr{META_MERGE}{build_requires} = $meta->build_requires();
 
 WriteMakefile(%attr);
+
+# ex: set textwidth=72 :
